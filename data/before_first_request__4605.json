@@ -1,0 +1,16 @@
+{
+  "number": 4605,
+  "type": "issue",
+  "url": "https://github.com/pallets/flask/issues/4605",
+  "title": "deprecate `before_first_request`",
+  "state": "closed",
+  "author": "davidism",
+  "created_at": "2022-05-23T15:26:25Z",
+  "closed_at": "2022-06-06T17:11:00Z",
+  "labels": [],
+  "body": "While reviewing the consistent use of `setupmethod` for #4571 and #4577, I'm realizing that `before_first_request` should probably be deprecated then removed.\r\n\r\n* There's no example use cases in the docs.\r\n* From examples I've seen on Stack Overflow and around the web, it seems to be (mis)used as a setup method, to do something \"before the application starts\".\r\n* Configuration should be done before _running_ the application, during the actual setup phase. Preferably, it should be done in a factory function.\r\n* It incurs a function call before _every_ request, for something that only happens once. This can be inlined to only incur an `if` check, but it's not ideal.\r\n* It runs before the first request for every _instance_, which is every or almost every time for many process worker implementations, and only once for the dev server (the only thread worker I'm aware of). The `threading.Lock` is not useful for an eventual ASGI implementation.",
+  "comments": [],
+  "comments_expected": 0,
+  "comments_fetched": 0,
+  "comments_complete": true
+}

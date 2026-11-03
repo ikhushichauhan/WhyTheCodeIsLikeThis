@@ -1,0 +1,33 @@
+{
+  "number": 4417,
+  "type": "pull_request",
+  "url": "https://github.com/pallets/flask/pull/4417",
+  "title": "remove deprecated as_tuple parameter from test_client",
+  "state": "closed",
+  "author": "davidism",
+  "created_at": "2022-01-14T17:34:55Z",
+  "closed_at": "2022-01-14T17:38:02Z",
+  "labels": [],
+  "body": "This was deprecated in Werkzeug 2.0, and is no longer supported in Werkzeug 2.1 or Flask 2.1.",
+  "comments": [],
+  "comments_expected": 0,
+  "comments_fetched": 0,
+  "comments_complete": true,
+  "merged": true,
+  "merged_at": "2022-01-14T17:38:02Z",
+  "review_comments": [],
+  "files": [
+    {
+      "filename": "CHANGES.rst",
+      "status": "modified",
+      "patch": "@@ -19,6 +19,8 @@ Unreleased\n         instead.\n     -   The same blueprint cannot be registered with the same name. Use\n         ``name=`` when registering to specify a unique name.\n+    -   The test client's ``as_tuple`` parameter is removed. Use\n+        ``response.request.environ`` instead. :pr:`4417`\n \n -   Some parameters in ``send_file`` and ``send_from_directory`` were\n     renamed in 2.0. The deprecation period for the old names is extended",
+      "patch_missing": false
+    },
+    {
+      "filename": "src/flask/testing.py",
+      "status": "modified",
+      "patch": "@@ -179,8 +179,6 @@ def open(\n         follow_redirects: bool = False,\n         **kwargs: t.Any,\n     ) -> \"TestResponse\":\n-        as_tuple = kwargs.pop(\"as_tuple\", None)\n-\n         # Same logic as super.open, but apply environ_base and preserve_context.\n         request = None\n \n@@ -215,28 +213,11 @@ def copy_environ(other):\n             finally:\n                 builder.close()\n \n-        if as_tuple is not None:\n-            import warnings\n-\n-            warnings.warn(\n-                \"'as_tuple' is deprecated and will be removed in\"\n-                \" Werkzeug 2.1 and Flask 2.1. Use\"\n-                \" 'response.request.environ' instead.\",\n-                DeprecationWarning,\n-                stacklevel=3,\n-            )\n-            return super().open(\n-                request,\n-                as_tuple=as_tuple,\n-                buffered=buffered,\n-                follow_redirects=follow_redirects,\n-            )\n-        else:\n-            return super().open(\n-                request,\n-                buffered=buffered,\n-                follow_redirects=follow_redirects,\n-            )\n+        return super().open(\n+            request,\n+            buffered=buffered,\n+            follow_redirects=follow_redirects,\n+        )\n \n     def __enter__(self) -> \"FlaskClient\":\n         if self.preserve_context:",
+      "patch_missing": false
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "number": 5084,
+  "type": "issue",
+  "url": "https://github.com/pallets/flask/issues/5084",
+  "title": "Cannot import Markup from flask",
+  "state": "closed",
+  "author": "lucaswerkmeister",
+  "created_at": "2023-04-25T19:11:36Z",
+  "closed_at": "2023-04-25T20:06:30Z",
+  "labels": [],
+  "body": "`from flask import Markup` and `flask.Markup` both don’t work. This is merely supposed to be deprecated, not broken, in Flask 2.3.0.\r\n\r\nExample A:\r\n```python\r\nimport flask\r\n\r\nprint(flask.Markup('hi'))\r\n```\r\n```\r\nTraceback (most recent call last):\r\n  File \"/tmp/flask230/1.py\", line 3, in <module>\r\n    print(flask.Markup('hi'))\r\n  File \"/tmp/flask230/venv/lib/python3.10/site-packages/flask/__init__.py\", line 102, in __getattr__\r\n    raise AttributeError(name)\r\nAttributeError: Markup\r\n```\r\n\r\nExample B:\r\n```python\r\nfrom flask import Markup\r\n\r\nprint(Markup('hi'))\r\n```\r\n```\r\nTraceback (most recent call last):\r\n  File \"/tmp/flask230/2.py\", line 1, in <module>\r\n    from flask import Markup\r\nImportError: cannot import name 'Markup' from 'flask' (/tmp/flask230/venv/lib/python3.10/site-packages/flask/__init__.py)\r\n```\r\n\r\nEnvironment:\r\n\r\n- Python version: 3.10.10\r\n- Flask version: 2.3.0",
+  "comments": [
+    {
+      "author": "davidism",
+      "created_at": "2023-04-25T20:38:23Z",
+      "url": "https://github.com/pallets/flask/issues/5084#issuecomment-1522385140",
+      "body": "PyPI's upload API is down at the moment, I will retry the release later. "
+    },
+    {
+      "author": "davidism",
+      "created_at": "2023-04-25T21:36:33Z",
+      "url": "https://github.com/pallets/flask/issues/5084#issuecomment-1522452980",
+      "body": "Flask 2.3.1 is now available on PyPI. "
+    }
+  ],
+  "comments_expected": 2,
+  "comments_fetched": 2,
+  "comments_complete": true
+}

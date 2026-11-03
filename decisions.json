@@ -1,0 +1,78 @@
+
+[
+  {
+    "entity": "app.before_first_request",
+    "aliases": [
+      "before_first_request",
+      "before_app_first_request"
+    ],
+    "status": "removed",
+    "events": [
+      {
+        "type": "deprecated",
+        "ref": 4605,
+        "version": "2.2.0"
+      },
+      {
+        "type": "removed",
+        "ref": 4995,
+        "version": "2.3.0",
+        "merged_at": "2023-02-23T16:45:39Z"
+      }
+    ],
+    "rationale": {
+      "ref": 4605,
+      "quote": "Configuration should be done before _running_ the application, during the actual setup phase. Preferably, it should be done in a factory function."
+    }
+  },
+  {
+    "entity": "got_first_request",
+    "aliases": [
+      "got_first_request"
+    ],
+    "status": "removed",
+    "events": [
+      {
+        "type": "deprecated",
+        "ref": 4997,
+        "version": "2.3.0"
+      },
+      {
+        "type": "removed",
+        "ref": 5223,
+        "version": "3.0.0",
+        "merged_at": "2023-08-16T22:08:53Z"
+      }
+    ],
+    "rationale": {
+      "ref": 4997,
+      "quote": "This property was missed when deprecating `before_first_request`."
+    }
+  },
+  {
+    "entity": "test_client.as_tuple",
+    "aliases": [
+      "as_tuple",
+      "test_client as_tuple"
+    ],
+    "status": "removed",
+    "events": [
+      {
+        "type": "deprecated",
+        "ref": 4341,
+        "version": "2.0.3",
+        "merged_at": "2021-11-15T21:24:49Z"
+      },
+      {
+        "type": "removed",
+        "ref": 4417,
+        "version": "2.1.0",
+        "merged_at": "2022-01-14T17:38:02Z"
+      }
+    ],
+    "rationale": {
+      "ref": 4417,
+      "quote": "This was deprecated in Werkzeug 2.0, and is no longer supported in Werkzeug 2.1 or Flask 2.1."
+    }
+  }
+]

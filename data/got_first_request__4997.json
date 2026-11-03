@@ -1,0 +1,45 @@
+{
+  "number": 4997,
+  "type": "pull_request",
+  "url": "https://github.com/pallets/flask/pull/4997",
+  "title": "deprecate `got_first_request`",
+  "state": "closed",
+  "author": "davidism",
+  "created_at": "2023-02-23T17:31:20Z",
+  "closed_at": "2023-02-23T17:34:18Z",
+  "labels": [],
+  "body": "This property was missed when deprecating `before_first_request`.\r\n\r\nAlso make calling setup methods on registered blueprints an error instead of a warning, as was described in the previous warning.",
+  "comments": [],
+  "comments_expected": 0,
+  "comments_fetched": 0,
+  "comments_complete": true,
+  "merged": true,
+  "merged_at": "2023-02-23T17:34:18Z",
+  "review_comments": [],
+  "files": [
+    {
+      "filename": "CHANGES.rst",
+      "status": "modified",
+      "patch": "@@ -20,9 +20,12 @@ Unreleased\n     -   ``json_encoder`` and ``json_decoder`` attributes on app and blueprint, and the\n         corresponding ``json.JSONEncoder`` and ``JSONDecoder`` classes, are removed.\n     -   The ``json.htmlsafe_dumps`` and ``htmlsafe_dump`` functions are removed.\n+    -   Calling setup methods on blueprints after registration is an error instead of a\n+        warning. :pr:`4997`\n \n -   Importing ``escape`` and ``Markup`` from ``flask`` is deprecated. Import them\n     directly from ``markupsafe`` instead. :pr:`4996`\n+-   The ``app.got_first_request`` property is deprecated. :pr:`4997`\n -   Use modern packaging metadata with ``pyproject.toml`` instead of ``setup.cfg``.\n     :pr:`4947`\n -   Ensure subdomains are applied with nested blueprints. :issue:`4834`",
+      "patch_missing": false
+    },
+    {
+      "filename": "src/flask/app.py",
+      "status": "modified",
+      "patch": "@@ -8,7 +8,6 @@\n from collections.abc import Iterator as _abc_Iterator\n from datetime import timedelta\n from itertools import chain\n-from threading import Lock\n from types import TracebackType\n \n import click\n@@ -496,7 +495,6 @@ def __init__(\n         # tracks internally if the application already handled at least one\n         # request.\n         self._got_first_request = False\n-        self._before_request_lock = Lock()\n \n         # Add a static route using the provided static_url_path, static_host,\n         # and static_folder if there is a configured static_folder.\n@@ -592,8 +590,18 @@ def got_first_request(self) -> bool:\n         \"\"\"This attribute is set to ``True`` if the application started\n         handling the first request.\n \n+        .. deprecated:: 2.3\n+            Will be removed in Flask 2.4.\n+\n         .. versionadded:: 0.8\n         \"\"\"\n+        import warnings\n+\n+        warnings.warn(\n+            \"'got_first_request' is deprecated and will be removed in Flask 2.4.\",\n+            DeprecationWarning,\n+            stacklevel=2,\n+        )\n         return self._got_first_request\n \n     def make_config(self, instance_relative: bool = False) -> Config:",
+      "patch_missing": false
+    },
+    {
+      "filename": "src/flask/blueprints.py",
+      "status": "modified",
+      "patch": "@@ -207,19 +207,12 @@ def __init__(\n \n     def _check_setup_finished(self, f_name: str) -> None:\n         if self._got_registered_once:\n-            import warnings\n-\n-            warnings.warn(\n-                f\"The setup method '{f_name}' can no longer be called on\"\n-                f\" the blueprint '{self.name}'. It has already been\"\n-                \" registered at least once, any changes will not be\"\n-                \" applied consistently.\\n\"\n-                \"Make sure all imports, decorators, functions, etc.\"\n-                \" needed to set up the blueprint are done before\"\n-                \" registering it.\\n\"\n-                \"This warning will become an exception in Flask 2.3.\",\n-                UserWarning,\n-                stacklevel=3,\n+            raise AssertionError(\n+                f\"The setup method '{f_name}' can no longer be called on the blueprint\"\n+                f\" '{self.name}'. It has already been registered at least once, any\"\n+                \" changes will not be applied consistently.\\n\"\n+                \"Make sure all imports, decorators, functions, etc. needed to set up\"\n+                \" the blueprint are done before registering it.\"\n             )\n \n     @setupmethod",
+      "patch_missing": false
+    },
+    {
+      "filename": "tests/test_basic.py",
+      "status": "modified",
+      "patch": "@@ -1657,7 +1657,6 @@ def test_no_setup_after_first_request(app, client):\n     def index():\n         return \"Awesome\"\n \n-    assert not app.got_first_request\n     assert client.get(\"/\").data == b\"Awesome\"\n \n     with pytest.raises(AssertionError) as exc_info:",
+      "patch_missing": false
+    }
+  ]
+}

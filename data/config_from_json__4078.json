@@ -1,0 +1,16 @@
+{
+  "number": 4078,
+  "type": "issue",
+  "url": "https://github.com/pallets/flask/issues/4078",
+  "title": "`Config.from_json` should currently be deprecated, not removed",
+  "state": "closed",
+  "author": "slokhorst",
+  "created_at": "2021-05-20T15:03:03Z",
+  "closed_at": "2021-05-20T20:52:18Z",
+  "labels": [],
+  "body": "After upgrading to Flask 2.0, using `app.config.from_json()` gives the following error:\r\n\r\n```\r\nAttributeError: 'Config' object has no attribute 'from_json'\r\n```\r\n\r\n[The changelog](https://flask.palletsprojects.com/en/2.0.x/changes/#version-2-0-0) only says that it has been deprecated, but not removed:\r\n\r\n> Add `Config.from_file()` to load config using arbitrary file loaders, such as `toml.load` or `json.load`. `Config.from_json()` is deprecated in favor of this. #3398",
+  "comments": [],
+  "comments_expected": 0,
+  "comments_fetched": 0,
+  "comments_complete": true
+}

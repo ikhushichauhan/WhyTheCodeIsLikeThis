@@ -1,0 +1,63 @@
+{
+  "number": 5223,
+  "type": "pull_request",
+  "url": "https://github.com/pallets/flask/pull/5223",
+  "title": "remove deprecated code",
+  "state": "closed",
+  "author": "davidism",
+  "created_at": "2023-08-16T22:06:45Z",
+  "closed_at": "2023-08-16T22:08:53Z",
+  "labels": [],
+  "body": "These uses showed a deprecation warning in 2.3, and are now removed for 3.0.\r\n\r\n- `_app_ctx_stack` and `_request_ctx_stack` are removed as places to store custom data in favor of `g`. The deprecation period was already extended from 2.3.\r\n- `signals_available` is removed, it's always true now that blinker is a dependency.\r\n- `escape` and `Markup` are no longer re-exported from markupsafe.\r\n- `locked_cached_property` is removed.\r\n- `is_ip` is removed.",
+  "comments": [],
+  "comments_expected": 0,
+  "comments_fetched": 0,
+  "comments_complete": true,
+  "merged": true,
+  "merged_at": "2023-08-16T22:08:53Z",
+  "review_comments": [],
+  "files": [
+    {
+      "filename": "CHANGES.rst",
+      "status": "modified",
+      "patch": "@@ -3,6 +3,8 @@ Version 3.0.0\n \n Unreleased\n \n+-   Remove previously deprecated code. :pr:`5223`\n+\n \n Version 2.3.3\n -------------",
+      "patch_missing": false
+    },
+    {
+      "filename": "docs/api.rst",
+      "status": "modified",
+      "patch": "@@ -519,11 +519,6 @@ Signals are provided by the `Blinker`_ library. See :doc:`signals` for an introd\n \n    .. versionadded:: 0.10\n \n-.. data:: signals.signals_available\n-\n-    .. deprecated:: 2.3\n-        Will be removed in Flask 2.4. Signals are always available\n-\n \n Class-Based Views\n -----------------",
+      "patch_missing": false
+    },
+    {
+      "filename": "src/flask/__init__.py",
+      "status": "modified",
+      "patch": "@@ -39,64 +39,3 @@\n from .templating import stream_template_string as stream_template_string\n \n __version__ = \"3.0.0.dev\"\n-\n-\n-def __getattr__(name):\n-    if name == \"_app_ctx_stack\":\n-        import warnings\n-        from .globals import __app_ctx_stack\n-\n-        warnings.warn(\n-            \"'_app_ctx_stack' is deprecated and will be removed in Flask 2.4.\",\n-            DeprecationWarning,\n-            stacklevel=2,\n-        )\n-        return __app_ctx_stack\n-\n-    if name == \"_request_ctx_stack\":\n-        import warnings\n-        from .globals import __request_ctx_stack\n-\n-        warnings.warn(\n-            \"'_request_ctx_stack' is deprecated and will be removed in Flask 2.4.\",\n-            DeprecationWarning,\n-            stacklevel=2,\n-        )\n-        return __request_ctx_stack\n-\n-    if name == \"escape\":\n-        import warnings\n-        from markupsafe import escape\n-\n-        warnings.warn(\n-            \"'flask.escape' is deprecated and will be removed in Flask 2.4. Import\"\n-            \" 'markupsafe.escape' instead.\",\n-            DeprecationWarning,\n-            stacklevel=2,\n-        )\n-        return escape\n-\n-    if name == \"Markup\":\n-        import warnings\n-        from markupsafe import Markup\n-\n-        warnings.warn(\n-            \"'flask.Markup' is deprecated and will be removed in Flask 2.4. Import\"\n-            \" 'markupsafe.Markup' instead.\",\n-            DeprecationWarning,\n-            stacklevel=2,\n-        )\n-        return Markup\n-\n-    if name == \"signals_available\":\n-        import warnings\n-\n-        warnings.warn(\n-            \"'signals_available' is deprecated and will be removed in Flask 2.4.\"\n-            \" Signals are always available\",\n-            DeprecationWarning,\n-            stacklevel=2,\n-        )\n-        return True\n-\n-    raise AttributeError(name)",
+      "patch_missing": false
+    },
+    {
+      "filename": "src/flask/app.py",
+      "status": "modified",
+      "patch": "@@ -572,25 +572,6 @@ def jinja_env(self) -> Environment:\n         \"\"\"\n         return self.create_jinja_environment()\n \n-    @property\n-    def got_first_request(self) -> bool:\n-        \"\"\"This attribute is set to ``True`` if the application started\n-        handling the first request.\n-\n-        .. deprecated:: 2.3\n-            Will be removed in Flask 2.4.\n-\n-        .. versionadded:: 0.8\n-        \"\"\"\n-        import warnings\n-\n-        warnings.warn(\n-            \"'got_first_request' is deprecated and will be removed in Flask 2.4.\",\n-            DeprecationWarning,\n-            stacklevel=2,\n-        )\n-        return self._got_first_request\n-\n     def make_config(self, instance_relative: bool = False) -> Config:\n         \"\"\"Used to create the config attribute by the Flask constructor.\n         The `instance_relative` parameter is passed in from the constructor",
+      "patch_missing": false
+    },
+    {
+      "filename": "src/flask/globals.py",
+      "status": "modified",
+      "patch": "@@ -14,25 +14,6 @@\n     from .wrappers import Request\n \n \n-class _FakeStack:\n-    def __init__(self, name: str, cv: ContextVar[t.Any]) -> None:\n-        self.name = name\n-        self.cv = cv\n-\n-    @property\n-    def top(self) -> t.Any | None:\n-        import warnings\n-\n-        warnings.warn(\n-            f\"'_{self.name}_ctx_stack' is deprecated and will be removed in Flask 2.4.\"\n-            f\" Use 'g' to store data, or '{self.name}_ctx' to access the current\"\n-            \" context.\",\n-            DeprecationWarning,\n-            stacklevel=2,\n-        )\n-        return self.cv.get(None)\n-\n-\n _no_app_msg = \"\"\"\\\n Working outside of application context.\n \n@@ -41,7 +22,6 @@ def top(self) -> t.Any | None:\n with app.app_context(). See the documentation for more information.\\\n \"\"\"\n _cv_app: ContextVar[AppContext] = ContextVar(\"flask.app_ctx\")\n-__app_ctx_stack = _FakeStack(\"app\", _cv_app)\n app_ctx: AppContext = LocalProxy(  # type: ignore[assignment]\n     _cv_app, unbound_message=_no_app_msg\n )\n@@ -60,7 +40,6 @@ def top(self) -> t.Any | None:\n information about how to avoid this problem.\\\n \"\"\"\n _cv_request: ContextVar[RequestContext] = ContextVar(\"flask.request_ctx\")\n-__request_ctx_stack = _FakeStack(\"request\", _cv_request)\n request_ctx: RequestContext = LocalProxy(  # type: ignore[assignment]\n     _cv_request, unbound_message=_no_req_msg\n )\n@@ -70,27 +49,3 @@ def top(self) -> t.Any | None:\n session: SessionMixin = LocalProxy(  # type: ignore[assignment]\n     _cv_request, \"session\", unbound_message=_no_req_msg\n )\n-\n-\n-def __getattr__(name: str) -> t.Any:\n-    if name == \"_app_ctx_stack\":\n-        import warnings\n-\n-        warnings.warn(\n-            \"'_app_ctx_stack' is deprecated and will be removed in Flask 2.4.\",\n-            DeprecationWarning,\n-            stacklevel=2,\n-        )\n-        return __app_ctx_stack\n-\n-    if name == \"_request_ctx_stack\":\n-        import warnings\n-\n-        warnings.warn(\n-            \"'_request_ctx_stack' is deprecated and will be removed in Flask 2.4.\",\n-            DeprecationWarning,\n-            stacklevel=2,\n-        )\n-        return __request_ctx_stack\n-\n-    raise AttributeError(name)",
+      "patch_missing": false
+    },
+    {
+      "filename": "src/flask/helpers.py",
+      "status": "modified",
+      "patch": "@@ -2,14 +2,11 @@\n \n import importlib.util\n import os\n-import socket\n import sys\n import typing as t\n-import warnings\n from datetime import datetime\n from functools import lru_cache\n from functools import update_wrapper\n-from threading import RLock\n \n import werkzeug.utils\n from werkzeug.exceptions import abort as _wz_abort\n@@ -492,7 +489,7 @@ def send_file(\n \n     .. versionchanged:: 0.7\n         MIME guessing and etag support for file-like objects was\n-        deprecated because it was unreliable. Pass a filename if you are\n+        removed because it was unreliable. Pass a filename if you are\n         able to, otherwise attach an etag yourself.\n \n     .. versionchanged:: 0.5\n@@ -616,81 +613,6 @@ def get_root_path(import_name: str) -> str:\n     return os.path.dirname(os.path.abspath(filepath))\n \n \n-class locked_cached_property(werkzeug.utils.cached_property):\n-    \"\"\"A :func:`property` that is only evaluated once. Like\n-    :class:`werkzeug.utils.cached_property` except access uses a lock\n-    for thread safety.\n-\n-    .. deprecated:: 2.3\n-        Will be removed in Flask 2.4. Use a lock inside the decorated function if\n-        locking is needed.\n-\n-    .. versionchanged:: 2.0\n-        Inherits from Werkzeug's ``cached_property`` (and ``property``).\n-    \"\"\"\n-\n-    def __init__(\n-        self,\n-        fget: t.Callable[[t.Any], t.Any],\n-        name: str | None = None,\n-        doc: str | None = None,\n-    ) -> None:\n-        import warnings\n-\n-        warnings.warn(\n-            \"'locked_cached_property' is deprecated and will be removed in Flask 2.4.\"\n-            \" Use a lock inside the decorated function if locking is needed.\",\n-            DeprecationWarning,\n-            stacklevel=2,\n-        )\n-        super().__init__(fget, name=name, doc=doc)\n-        self.lock = RLock()\n-\n-    def __get__(self, obj: object, type: type = None) -> t.Any:  # type: ignore\n-        if obj is None:\n-            return self\n-\n-        with self.lock:\n-            return super().__get__(obj, type=type)\n-\n-    def __set__(self, obj: object, value: t.Any) -> None:\n-        with self.lock:\n-            super().__set__(obj, value)\n-\n-    def __delete__(self, obj: object) -> None:\n-        with self.lock:\n-            super().__delete__(obj)\n-\n-\n-def is_ip(value: str) -> bool:\n-    \"\"\"Determine if the given string is an IP address.\n-\n-    :param value: value to check\n-    :type value: str\n-\n-    :return: True if string is an IP address\n-    :rtype: bool\n-\n-    .. deprecated:: 2.3\n-        Will be removed in Flask 2.4.\n-    \"\"\"\n-    warnings.warn(\n-        \"The 'is_ip' function is deprecated and will be removed in Flask 2.4.\",\n-        DeprecationWarning,\n-        stacklevel=2,\n-    )\n-\n-    for family in (socket.AF_INET, socket.AF_INET6):\n-        try:\n-            socket.inet_pton(family, value)\n-        except OSError:\n-            pass\n-        else:\n-            return True\n-\n-    return False\n-\n-\n @lru_cache(maxsize=None)\n def _split_blueprint_path(name: str) -> list[str]:\n     out: list[str] = [name]",
+      "patch_missing": false
+    },
+    {
+      "filename": "src/flask/signals.py",
+      "status": "modified",
+      "patch": "@@ -1,8 +1,5 @@\n from __future__ import annotations\n \n-import typing as t\n-import warnings\n-\n from blinker import Namespace\n \n # This namespace is only for signals provided by Flask itself.\n@@ -18,16 +15,3 @@\n appcontext_pushed = _signals.signal(\"appcontext-pushed\")\n appcontext_popped = _signals.signal(\"appcontext-popped\")\n message_flashed = _signals.signal(\"message-flashed\")\n-\n-\n-def __getattr__(name: str) -> t.Any:\n-    if name == \"signals_available\":\n-        warnings.warn(\n-            \"The 'signals_available' attribute is deprecated and will be removed in\"\n-            \" Flask 2.4. Signals are always available.\",\n-            DeprecationWarning,\n-            stacklevel=2,\n-        )\n-        return True\n-\n-    raise AttributeError(name)",
+      "patch_missing": false
+    }
+  ]
+}

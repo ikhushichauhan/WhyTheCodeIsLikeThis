@@ -1,0 +1,95 @@
+{
+  "number": 3398,
+  "type": "pull_request",
+  "url": "https://github.com/pallets/flask/pull/3398",
+  "title": "Support loading configuration from text files",
+  "state": "closed",
+  "author": "pgjones",
+  "created_at": "2019-10-15T13:57:08Z",
+  "closed_at": "2019-10-18T16:28:38Z",
+  "labels": [],
+  "body": "TOML is a very popular format now, and is taking hold in the Python\r\necosystem via pyproject.toml (among others). This allows toml config\r\nfiles via,\r\n\r\n    app.config.from_file(\"config.toml\", toml.loads)\r\n\r\nit also allows for any other file format whereby there is a loader\r\nthat takes a string and returns a mapping.\r\n\r\nThis is an alternative to #3386.",
+  "comments": [
+    {
+      "author": "davidism",
+      "created_at": "2019-10-15T14:37:13Z",
+      "url": "https://github.com/pallets/flask/pull/3398#issuecomment-542245262",
+      "body": "I'm not sure if it's worth pulling in TOML just for one test. Can this be tested with `json.load` instead?"
+    },
+    {
+      "author": "pgjones",
+      "created_at": "2019-10-16T08:34:48Z",
+      "url": "https://github.com/pallets/flask/pull/3398#issuecomment-542590462",
+      "body": "I've moved the toml example to the docs (from the tests)."
+    }
+  ],
+  "comments_expected": 2,
+  "comments_fetched": 2,
+  "comments_complete": true,
+  "merged": true,
+  "merged_at": "2019-10-18T16:28:38Z",
+  "review_comments": [
+    {
+      "author": "davidism",
+      "path": "src/flask/config.py",
+      "url": "https://github.com/pallets/flask/pull/3398#discussion_r334988255",
+      "body": "Should this use `load(file_)`? If someone has a loader that doesn't support a file handle, they can wrap it as `lambda f: json.loads(f.read())`."
+    },
+    {
+      "author": "davidism",
+      "path": "src/flask/config.py",
+      "url": "https://github.com/pallets/flask/pull/3398#discussion_r334988627",
+      "body": "This should issue a `DeprecationWarning` to be removed in 2.0."
+    },
+    {
+      "author": "davidism",
+      "path": "tests/test_config.py",
+      "url": "https://github.com/pallets/flask/pull/3398#discussion_r334991098",
+      "body": "Make this an optional dependency with [`pytest.importorskip`](https://docs.pytest.org/en/latest/skipping.html#skipping-on-a-missing-import-dependency) so users can run `pytest` directly for most contributions."
+    },
+    {
+      "author": "davidism",
+      "path": "tests/test_config.py",
+      "url": "https://github.com/pallets/flask/pull/3398#discussion_r334991299",
+      "body": "Rename to `test_config_from_toml_file`."
+    },
+    {
+      "author": "pgjones",
+      "path": "tests/test_config.py",
+      "url": "https://github.com/pallets/flask/pull/3398#discussion_r335097899",
+      "body": "I've removed it and added some docs instead."
+    },
+    {
+      "author": "pgjones",
+      "path": "src/flask/config.py",
+      "url": "https://github.com/pallets/flask/pull/3398#discussion_r335098022",
+      "body": "Done."
+    }
+  ],
+  "files": [
+    {
+      "filename": "CHANGES.rst",
+      "status": "modified",
+      "patch": "@@ -7,6 +7,9 @@ Unreleased\n \n -   Add :meth:`sessions.SessionInterface.get_cookie_name` to allow\n     setting the session cookie name dynamically. :pr:`3369`\n+-   Add :meth:`Config.from_file` to load config using arbitrary file\n+    loaders, such as ``toml.load`` or ``json.load``.\n+    :meth:`Config.from_json` is deprecated in favor of this. :pr:`3398`\n \n \n Version 1.1.2",
+      "patch_missing": false
+    },
+    {
+      "filename": "docs/config.rst",
+      "status": "modified",
+      "patch": "@@ -393,8 +393,8 @@ The following configuration values are used internally by Flask:\n     Added :data:`MAX_COOKIE_SIZE` to control a warning from Werkzeug.\n \n \n-Configuring from Files\n-----------------------\n+Configuring from Python Files\n+-----------------------------\n \n Configuration becomes more useful if you can store it in a separate file,\n ideally located outside the actual application package. This makes\n@@ -441,6 +441,26 @@ complete reference, read the :class:`~flask.Config` object's\n documentation.\n \n \n+Configuring from Data Files\n+---------------------------\n+\n+It is also possible to load configuration from a file in a format of\n+your choice using :meth:`~flask.Config.from_file`. For example to load\n+from a TOML file:\n+\n+.. code-block:: python\n+\n+    import toml\n+    app.config.from_file(\"config.toml\", load=toml.load)\n+\n+Or from a JSON file:\n+\n+.. code-block:: python\n+\n+    import json\n+    app.config.from_file(\"config.json\", load=json.load)\n+\n+\n Configuring from Environment Variables\n --------------------------------------\n ",
+      "patch_missing": false
+    },
+    {
+      "filename": "src/flask/config.py",
+      "status": "modified",
+      "patch": "@@ -11,10 +11,10 @@\n import errno\n import os\n import types\n+import warnings\n \n from werkzeug.utils import import_string\n \n-from . import json\n from ._compat import iteritems\n from ._compat import string_types\n \n@@ -176,31 +176,63 @@ class and has ``@property`` attributes, it needs to be\n             if key.isupper():\n                 self[key] = getattr(obj, key)\n \n-    def from_json(self, filename, silent=False):\n-        \"\"\"Updates the values in the config from a JSON file. This function\n-        behaves as if the JSON object was a dictionary and passed to the\n-        :meth:`from_mapping` function.\n+    def from_file(self, filename, load, silent=False):\n+        \"\"\"Update the values in the config from a file that is loaded\n+        using the ``load`` parameter. The loaded data is passed to the\n+        :meth:`from_mapping` method.\n \n-        :param filename: the filename of the JSON file.  This can either be an\n-                         absolute filename or a filename relative to the\n-                         root path.\n-        :param silent: set to ``True`` if you want silent failure for missing\n-                       files.\n+        .. code-block:: python\n \n-        .. versionadded:: 0.11\n+            import toml\n+            app.config.from_file(\"config.toml\", load=toml.load)\n+\n+        :param filename: The path to the data file. This can be an\n+            absolute path or relative to the config root path.\n+        :param load: A callable that takes a file handle and returns a\n+            mapping of loaded data from the file.\n+        :type load: ``Callable[[Reader], Mapping]`` where ``Reader``\n+            implements a ``read`` method.\n+        :param silent: Ignore the file if it doesn't exist.\n+\n+        .. versionadded:: 1.2\n         \"\"\"\n         filename = os.path.join(self.root_path, filename)\n \n         try:\n-            with open(filename) as json_file:\n-                obj = json.loads(json_file.read())\n+            with open(filename) as f:\n+                obj = load(f)\n         except IOError as e:\n             if silent and e.errno in (errno.ENOENT, errno.EISDIR):\n                 return False\n+\n             e.strerror = \"Unable to load configuration file (%s)\" % e.strerror\n             raise\n+\n         return self.from_mapping(obj)\n \n+    def from_json(self, filename, silent=False):\n+        \"\"\"Update the values in the config from a JSON file. The loaded\n+        data is passed to the :meth:`from_mapping` method.\n+\n+        :param filename: The path to the JSON file. This can be an\n+            absolute path or relative to the config root path.\n+        :param silent: Ignore the file if it doesn't exist.\n+\n+        .. deprecated:: 1.2\n+            Use :meth:`from_file` with :meth:`json.load` instead.\n+\n+        .. versionadded:: 0.11\n+        \"\"\"\n+        warnings.warn(\n+            \"'from_json' is deprecated and will be removed in 2.0.\"\n+            \" Use 'from_file(filename, load=json.load)' instead.\",\n+            DeprecationWarning,\n+            stacklevel=2,\n+        )\n+        from .json import load\n+\n+        return self.from_file(filename, load, silent=silent)\n+\n     def from_mapping(self, *mapping, **kwargs):\n         \"\"\"Updates the config like :meth:`update` ignoring items with non-upper\n         keys.",
+      "patch_missing": false
+    },
+    {
+      "filename": "tests/test_config.py",
+      "status": "modified",
+      "patch": "@@ -6,6 +6,7 @@\n     :copyright: 2010 Pallets\n     :license: BSD-3-Clause\n \"\"\"\n+import json\n import os\n import textwrap\n from datetime import timedelta\n@@ -27,7 +28,7 @@ def common_object_test(app):\n     assert \"TestConfig\" not in app.config\n \n \n-def test_config_from_file():\n+def test_config_from_pyfile():\n     app = flask.Flask(__name__)\n     app.config.from_pyfile(__file__.rsplit(\".\", 1)[0] + \".py\")\n     common_object_test(app)\n@@ -39,10 +40,10 @@ def test_config_from_object():\n     common_object_test(app)\n \n \n-def test_config_from_json():\n+def test_config_from_file():\n     app = flask.Flask(__name__)\n     current_dir = os.path.dirname(os.path.abspath(__file__))\n-    app.config.from_json(os.path.join(current_dir, \"static\", \"config.json\"))\n+    app.config.from_file(os.path.join(current_dir, \"static\", \"config.json\"), json.load)\n     common_object_test(app)\n \n \n@@ -116,16 +117,16 @@ def test_config_missing():\n     assert not app.config.from_pyfile(\"missing.cfg\", silent=True)\n \n \n-def test_config_missing_json():\n+def test_config_missing_file():\n     app = flask.Flask(__name__)\n     with pytest.raises(IOError) as e:\n-        app.config.from_json(\"missing.json\")\n+        app.config.from_file(\"missing.json\", load=json.load)\n     msg = str(e.value)\n     assert msg.startswith(\n         \"[Errno 2] Unable to load configuration file (No such file or directory):\"\n     )\n     assert msg.endswith(\"missing.json'\")\n-    assert not app.config.from_json(\"missing.json\", silent=True)\n+    assert not app.config.from_file(\"missing.json\", load=json.load, silent=True)\n \n \n def test_custom_config_class():",
+      "patch_missing": false
+    }
+  ]
+}

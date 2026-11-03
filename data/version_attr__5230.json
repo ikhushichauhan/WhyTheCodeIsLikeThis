@@ -1,0 +1,41 @@
+{
+  "number": 5230,
+  "type": "issue",
+  "url": "https://github.com/pallets/flask/issues/5230",
+  "title": "deprecate `__version__`",
+  "state": "closed",
+  "author": "davidism",
+  "created_at": "2023-08-21T16:02:50Z",
+  "closed_at": "2023-08-29T13:10:00Z",
+  "labels": [],
+  "body": "The `__version__` attribute is an old pattern from early in Python packaging. Setuptools eventually made it easier to use the pattern by allowing reading the value from the attribute at build time, and some other build backends have done the same.\r\n\r\nHowever, there's no reason to expose this directly in code anymore. It's usually easier to use feature detection (`hasattr`, `try/except`) instead. `importlib.metadata.version(\"werkzeug\")` can be used to get the version at runtime in a standard way, if it's really needed.",
+  "comments": [
+    {
+      "author": "davidism",
+      "created_at": "2023-08-21T16:44:30Z",
+      "url": "https://github.com/pallets/flask/issues/5230#issuecomment-1686671711",
+      "body": "Reported to Sentry here: https://github.com/getsentry/sentry-python/issues/2316"
+    },
+    {
+      "author": "yokeshwaran1",
+      "created_at": "2023-08-27T23:19:58Z",
+      "url": "https://github.com/pallets/flask/issues/5230#issuecomment-1694788873",
+      "body": "Hello @davidism ,\r\n\r\nI'm new to contributing to this repo & worked on addressin deprecation of __version__ as per this issue. After removing __version__ attribute, I tried to install Flask in editable mode with pip install -e . but faced an error. Below is  snippet of the error for reference, build tool is expecting a version string.  I'm unsure about how to proceed to smooth packaging and installation processes without the __version__ attribute. Any suggestions on the best approach to take? \r\n\r\n```\r\nFile \"/private/var/folders/s0/7jlcj_t57vz0r3bnk_wz3jx40000gq/T/pip-build-env-x3a6o9q7/overlay/lib/python3.11/site-packages/flit_core/common.py\", line 251, in check_version\r\n          raise NoVersionError('Cannot package module without a version string. '\r\n      flit_core.common.NoVersionError: Cannot package module without a version string. Please define a `__version__ = \"x.y.z\"` in your module.\r\n      [end of output]\r\n```"
+    },
+    {
+      "author": "davidism",
+      "created_at": "2023-08-28T00:09:46Z",
+      "url": "https://github.com/pallets/flask/issues/5230#issuecomment-1694806357",
+      "body": "I guess this wasn't clear, but this isn't an issue we we looking for a contributor for. For one thing, this didn't say remove, this says deprecate, which is a different process. I've already done this, just haven't made a PR yet. "
+    },
+    {
+      "author": "yokeshwaran1",
+      "created_at": "2023-08-28T06:45:40Z",
+      "url": "https://github.com/pallets/flask/issues/5230#issuecomment-1695123434",
+      "body": "Thanks for the clarification. I misunderstood the goal of the issue. The phrasing \"there's no reason to expose this directly in code anymore\" thought me to believe that it might be a good idea to remove __version__. I see now that intention was to deprecate it rather than remove it outright.\r\n\r\nI am eager to learn, contribute more effectively to the project. If there are other areas or issues where I can help, please let me know @davidism "
+    }
+  ],
+  "comments_expected": 4,
+  "comments_fetched": 4,
+  "comments_complete": true
+}

@@ -1,0 +1,69 @@
+{
+  "number": 4996,
+  "type": "pull_request",
+  "url": "https://github.com/pallets/flask/pull/4996",
+  "title": "deprecate markupsafe exports",
+  "state": "closed",
+  "author": "davidism",
+  "created_at": "2023-02-23T16:57:06Z",
+  "closed_at": "2023-02-23T16:59:38Z",
+  "labels": [],
+  "body": "Importing `escape` and `Markup` from `flask` is deprecated. Import directly from `markupsafe` instead.\r\n\r\nWe've been deprecating re-exported names from other libraries over time, not sure why I missed these before. May have been that we couldn't rely on module `__getattr__` before for better warnings.",
+  "comments": [],
+  "comments_expected": 0,
+  "comments_fetched": 0,
+  "comments_complete": true,
+  "merged": true,
+  "merged_at": "2023-02-23T16:59:38Z",
+  "review_comments": [],
+  "files": [
+    {
+      "filename": "CHANGES.rst",
+      "status": "modified",
+      "patch": "@@ -21,6 +21,8 @@ Unreleased\n         corresponding ``json.JSONEncoder`` and ``JSONDecoder`` classes, are removed.\n     -   The ``json.htmlsafe_dumps`` and ``htmlsafe_dump`` functions are removed.\n \n+-   Importing ``escape`` and ``Markup`` from ``flask`` is deprecated. Import them\n+    directly from ``markupsafe`` instead. :pr:`4996`\n -   Use modern packaging metadata with ``pyproject.toml`` instead of ``setup.cfg``.\n     :pr:`4947`\n -   Ensure subdomains are applied with nested blueprints. :issue:`4834`",
+      "patch_missing": false
+    },
+    {
+      "filename": "docs/api.rst",
+      "status": "modified",
+      "patch": "@@ -217,10 +217,6 @@ Useful Functions and Classes\n \n .. autofunction:: send_from_directory\n \n-.. autofunction:: escape\n-\n-.. autoclass:: Markup\n-   :members: escape, unescape, striptags\n \n Message Flashing\n ----------------",
+      "patch_missing": false
+    },
+    {
+      "filename": "docs/security.rst",
+      "status": "modified",
+      "patch": "@@ -23,7 +23,7 @@ in templates, but there are still other places where you have to be\n careful:\n \n -   generating HTML without the help of Jinja2\n--   calling :class:`~flask.Markup` on data submitted by users\n+-   calling :class:`~markupsafe.Markup` on data submitted by users\n -   sending out HTML from uploaded files, never do that, use the\n     ``Content-Disposition: attachment`` header to prevent that problem.\n -   sending out textfiles from uploaded files.  Some browsers are using",
+      "patch_missing": false
+    },
+    {
+      "filename": "docs/templating.rst",
+      "status": "modified",
+      "patch": "@@ -115,7 +115,7 @@ markdown to HTML converter.\n \n There are three ways to accomplish that:\n \n--   In the Python code, wrap the HTML string in a :class:`~flask.Markup`\n+-   In the Python code, wrap the HTML string in a :class:`~markupsafe.Markup`\n     object before passing it to the template.  This is in general the\n     recommended way.\n -   Inside the template, use the ``|safe`` filter to explicitly mark a",
+      "patch_missing": false
+    },
+    {
+      "filename": "src/flask/__init__.py",
+      "status": "modified",
+      "patch": "@@ -1,6 +1,3 @@\n-from markupsafe import escape\n-from markupsafe import Markup\n-\n from . import json as json\n from .app import Flask as Flask\n from .app import Request as Request\n@@ -68,4 +65,28 @@ def __getattr__(name):\n         )\n         return __request_ctx_stack\n \n+    if name == \"escape\":\n+        import warnings\n+        from markupsafe import escape\n+\n+        warnings.warn(\n+            \"'flask.escape' is deprecated and will be removed in Flask 2.4. Import\"\n+            \" 'markupsafe.escape' instead.\",\n+            DeprecationWarning,\n+            stacklevel=2,\n+        )\n+        return escape\n+\n+    if name == \"escape\":\n+        import warnings\n+        from markupsafe import Markup\n+\n+        warnings.warn(\n+            \"'flask.Markup' is deprecated and will be removed in Flask 2.4. Import\"\n+            \" 'markupsafe.Markup' instead.\",\n+            DeprecationWarning,\n+            stacklevel=2,\n+        )\n+        return Markup\n+\n     raise AttributeError(name)",
+      "patch_missing": false
+    },
+    {
+      "filename": "tests/test_basic.py",
+      "status": "modified",
+      "patch": "@@ -9,6 +9,7 @@\n \n import pytest\n import werkzeug.serving\n+from markupsafe import Markup\n from werkzeug.exceptions import BadRequest\n from werkzeug.exceptions import Forbidden\n from werkzeug.exceptions import NotFound\n@@ -472,7 +473,7 @@ def test_session_special_types(app, client):\n     def dump_session_contents():\n         flask.session[\"t\"] = (1, 2, 3)\n         flask.session[\"b\"] = b\"\\xff\"\n-        flask.session[\"m\"] = flask.Markup(\"<html>\")\n+        flask.session[\"m\"] = Markup(\"<html>\")\n         flask.session[\"u\"] = the_uuid\n         flask.session[\"d\"] = now\n         flask.session[\"t_tag\"] = {\" t\": \"not-a-tuple\"}\n@@ -486,8 +487,8 @@ def dump_session_contents():\n         assert s[\"t\"] == (1, 2, 3)\n         assert type(s[\"b\"]) == bytes\n         assert s[\"b\"] == b\"\\xff\"\n-        assert type(s[\"m\"]) == flask.Markup\n-        assert s[\"m\"] == flask.Markup(\"<html>\")\n+        assert type(s[\"m\"]) == Markup\n+        assert s[\"m\"] == Markup(\"<html>\")\n         assert s[\"u\"] == the_uuid\n         assert s[\"d\"] == now\n         assert s[\"t_tag\"] == {\" t\": \"not-a-tuple\"}\n@@ -611,7 +612,7 @@ def test_extended_flashing(app):\n     def index():\n         flask.flash(\"Hello World\")\n         flask.flash(\"Hello World\", \"error\")\n-        flask.flash(flask.Markup(\"<em>Testing</em>\"), \"warning\")\n+        flask.flash(Markup(\"<em>Testing</em>\"), \"warning\")\n         return \"\"\n \n     @app.route(\"/test/\")\n@@ -620,7 +621,7 @@ def test():\n         assert list(messages) == [\n             \"Hello World\",\n             \"Hello World\",\n-            flask.Markup(\"<em>Testing</em>\"),\n+            Markup(\"<em>Testing</em>\"),\n         ]\n         return \"\"\n \n@@ -631,7 +632,7 @@ def test_with_categories():\n         assert list(messages) == [\n             (\"message\", \"Hello World\"),\n             (\"error\", \"Hello World\"),\n-            (\"warning\", flask.Markup(\"<em>Testing</em>\")),\n+            (\"warning\", Markup(\"<em>Testing</em>\")),\n         ]\n         return \"\"\n \n@@ -650,7 +651,7 @@ def test_filters():\n         )\n         assert list(messages) == [\n             (\"message\", \"Hello World\"),\n-            (\"warning\", flask.Markup(\"<em>Testing</em>\")),\n+            (\"warning\", Markup(\"<em>Testing</em>\")),\n         ]\n         return \"\"\n \n@@ -659,7 +660,7 @@ def test_filters2():\n         messages = flask.get_flashed_messages(category_filter=[\"message\", \"warning\"])\n         assert len(messages) == 2\n         assert messages[0] == \"Hello World\"\n-        assert messages[1] == flask.Markup(\"<em>Testing</em>\")\n+        assert messages[1] == Markup(\"<em>Testing</em>\")\n         return \"\"\n \n     # Create new test client on each test to clean flashed messages.",
+      "patch_missing": false
+    },
+    {
+      "filename": "tests/test_json_tag.py",
+      "status": "modified",
+      "patch": "@@ -3,8 +3,8 @@\n from uuid import uuid4\n \n import pytest\n+from markupsafe import Markup\n \n-from flask import Markup\n from flask.json.tag import JSONTag\n from flask.json.tag import TaggedJSONSerializer\n ",
+      "patch_missing": false
+    },
+    {
+      "filename": "tests/test_templating.py",
+      "status": "modified",
+      "patch": "@@ -3,6 +3,7 @@\n import pytest\n import werkzeug.serving\n from jinja2 import TemplateNotFound\n+from markupsafe import Markup\n \n import flask\n \n@@ -73,7 +74,7 @@ def test_escaping(app, client):\n     @app.route(\"/\")\n     def index():\n         return flask.render_template(\n-            \"escaping_template.html\", text=text, html=flask.Markup(text)\n+            \"escaping_template.html\", text=text, html=Markup(text)\n         )\n \n     lines = client.get(\"/\").data.splitlines()\n@@ -93,7 +94,7 @@ def test_no_escaping(app, client):\n     @app.route(\"/\")\n     def index():\n         return flask.render_template(\n-            \"non_escaping_template.txt\", text=text, html=flask.Markup(text)\n+            \"non_escaping_template.txt\", text=text, html=Markup(text)\n         )\n \n     lines = client.get(\"/\").data.splitlines()",
+      "patch_missing": false
+    }
+  ]
+}
