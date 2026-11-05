@@ -128,6 +128,7 @@ WhyTheCodeIsLikeThis/
 ├── test_connection.py
 ├── test_https.py
 ├── check_tls.py
+├── requirements.txt
 ├── data/
 ├── .env
 └── README.md
@@ -159,7 +160,7 @@ Activate on Windows:
 ### 3. Install dependencies
 
 ```bash
-pip install streamlit requests python-dotenv neo4j
+pip install -r requirements.txt
 ```
 
 ### 4. Configure Neo4j

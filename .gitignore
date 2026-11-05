@@ -10,3 +10,4 @@ docs/_build/
 venv/
 flask/
 *.pyc
+.streamlit/secrets.toml

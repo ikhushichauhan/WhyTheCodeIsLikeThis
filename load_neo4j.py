@@ -1,4 +1,3 @@
-
 import os
 import json
 import requests
@@ -17,7 +16,10 @@ ENDPOINT = f"{URL}/db/{DATABASE}/query/v2"
 # Verified source URLs
 SOURCE_URLS = {
     4605: "https://github.com/pallets/flask/issues/4605",
+    4995: "https://github.com/pallets/flask/pull/4995",
     4997: "https://github.com/pallets/flask/pull/4997",
+    5223: "https://github.com/pallets/flask/pull/5223",
+    4341: "https://github.com/pallets/flask/pull/4341",
     4417: "https://github.com/pallets/flask/pull/4417",
 }
 
@@ -49,11 +51,17 @@ with open("decisions.json", encoding="utf-8") as f:
     decisions = json.load(f)
 
 for decision in decisions:
+    events_with_urls = []
+    for ev in decision.get("events", []):
+        ev_copy = dict(ev)
+        ev_copy["url"] = SOURCE_URLS.get(ev.get("ref"), "")
+        events_with_urls.append(ev_copy)
+
     params = {
         "entity": decision["entity"],
         "aliases": decision["aliases"],
         "status": decision["status"],
-        "events": decision["events"]
+        "events": events_with_urls
     }
 
     query = """
@@ -65,17 +73,23 @@ for decision in decisions:
     MERGE (e:ChangeEvent {ref: ev.ref})
     SET e.type = ev.type,
         e.version = ev.version,
-        e.merged_at = ev.merged_at
+        e.merged_at = ev.merged_at,
+        e.url = ev.url
     MERGE (d)-[:HAS_EVENT]->(e)
     RETURN d.entity AS entity
     """
 
     run_query(query, params)
 
+    # Load evidence for rationale and events without duplicates
     rationale = decision.get("rationale")
+    rationale_ref = rationale.get("ref") if rationale else None
 
-    if rationale:
-        ref = rationale["ref"]
+    # Load all verified references as evidence
+    for ev in decision.get("events", []):
+        ref = ev["ref"]
+        quote = rationale["quote"] if (rationale and ref == rationale_ref) else ""
+        url = SOURCE_URLS.get(ref, "")
 
         evidence_query = """
         MATCH (d:Decision {entity: $entity})
@@ -83,8 +97,8 @@ for decision in decisions:
             entity: $entity,
             ref: $ref
         })
-        SET e.quote = $quote,
-            e.url = $url
+        SET e.url = $url,
+            e.quote = CASE WHEN $quote <> '' THEN $quote ELSE coalesce(e.quote, '') END
         MERGE (d)-[:SUPPORTED_BY]->(e)
         RETURN e.ref AS ref
         """
@@ -92,8 +106,8 @@ for decision in decisions:
         run_query(evidence_query, {
             "entity": decision["entity"],
             "ref": ref,
-            "quote": rationale["quote"],
-            "url": SOURCE_URLS.get(ref, "")
+            "quote": quote,
+            "url": url
         })
 
     print("Loaded:", decision["entity"])
