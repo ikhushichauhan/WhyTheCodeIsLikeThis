@@ -1,5 +1,6 @@
 import os
 import base64
+import textwrap
 import requests
 from PIL import Image
 import streamlit as st
@@ -32,6 +33,12 @@ def get_asset_b64(path):
         with open(path, "rb") as f:
             return base64.b64encode(f.read()).decode()
     return ""
+
+def clean_html(html_str: str) -> str:
+    """Removes leading indentation and blank lines so Markdown parsers
+    never treat indented HTML as code blocks.
+    """
+    return "\n".join(line.strip() for line in html_str.splitlines() if line.strip())
 
 bg_b64 = get_asset_b64(BG_PATH)
 favicon_b64 = get_asset_b64(FAVICON_PATH)
@@ -1100,7 +1107,7 @@ st.markdown(f"""
 if is_home:
 
     # Hero Content
-    st.markdown("""
+    st.markdown(clean_html("""
     <div class="hero-container">
         <div class="hero-badge">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1118,7 +1125,7 @@ if is_home:
             version history, rationale, and original evidence from the source.
         </p>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
     # Search Bar Form
     with st.form("home_search_form", clear_on_submit=False):
@@ -1137,7 +1144,7 @@ if is_home:
         st.session_state.search_query = query_val
 
     # Interactive Try Searching Chips
-    st.markdown("""
+    st.markdown(clean_html("""
     <div class="chips-row">
         <span>Try searching:</span>
         <a href="?page=home&q=app.before_first_request" target="_self" class="chip-btn">
@@ -1150,7 +1157,7 @@ if is_home:
             <span style="color:#a78bfa;">&lt;/&gt;</span> test_client.as_tuple
         </a>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
     # Check chip query param
     if "q" in query_params:
@@ -1160,7 +1167,7 @@ if is_home:
     if st.session_state.search_query:
         matched = find_decision(st.session_state.search_query)
         if matched:
-            st.markdown(f"""
+            st.markdown(clean_html(f"""
             <div style="max-width: 820px; margin: 0 auto 3rem;">
                 <div class="detail-panel" style="padding: 1.6rem 2rem;">
                     <div class="detail-top-row" style="margin-bottom: 1.2rem;">
@@ -1189,18 +1196,18 @@ if is_home:
                     </div>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            """), unsafe_allow_html=True)
         else:
-            st.markdown("""
+            st.markdown(clean_html("""
             <div style="text-align: center; margin: 1rem auto 2.5rem; color: var(--text-secondary);">
                 <div style="font-size: 1.8rem; margin-bottom: 0.4rem;">🔎</div>
                 <div style="font-size: 0.95rem; font-weight: 600; color: #fff;">No matching decision found</div>
                 <div style="font-size: 0.85rem; color: var(--text-dim);">Try searching for <code>before_first_request</code>, <code>got_first_request</code>, or <code>test_client.as_tuple</code>.</div>
             </div>
-            """, unsafe_allow_html=True)
+            """), unsafe_allow_html=True)
 
     # 3 Feature Cards
-    st.markdown("""
+    st.markdown(clean_html("""
     <div class="feature-grid">
         <div class="feature-card">
             <div class="feature-icon-box">
@@ -1243,7 +1250,7 @@ if is_home:
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1253,7 +1260,7 @@ if is_home:
 elif is_explore:
 
     # Header Row
-    st.markdown("""
+    st.markdown(clean_html("""
     <div class="section-header-row">
         <div class="section-title-wrap">
             <div class="title-icon-box">
@@ -1277,7 +1284,7 @@ elif is_explore:
             3 Decisions
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
     # Selected Decision
     selected_key = st.session_state.selected_decision
@@ -1303,7 +1310,7 @@ elif is_explore:
                 </div>
             </a>
             """
-        st.markdown(cards_html, unsafe_allow_html=True)
+        st.markdown(clean_html(cards_html), unsafe_allow_html=True)
 
     with col_detail:
         ev_buttons = ""
@@ -1317,7 +1324,7 @@ elif is_explore:
             </a>
             """
 
-        st.markdown(f"""
+        st.markdown(clean_html(f"""
         <div class="detail-panel">
             <div class="detail-top-row">
                 <div class="detail-entity-wrap">
@@ -1395,7 +1402,7 @@ elif is_explore:
                 {ev_buttons}
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """), unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1405,7 +1412,7 @@ elif is_explore:
 elif is_about:
 
     # Header Row
-    st.markdown("""
+    st.markdown(clean_html("""
     <div class="section-header-row">
         <div class="section-title-wrap">
             <div class="title-icon-box">
@@ -1420,12 +1427,12 @@ elif is_about:
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
     col_meth, col_right = st.columns([1, 1.8], gap="large")
 
     with col_meth:
-        st.markdown("""
+        st.markdown(clean_html("""
         <div class="methodology-card">
             <div style="display:flex; align-items:center; gap:0.6rem; font-size:1.1rem; font-weight:700; color:#fff; margin-bottom:1.4rem;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1494,11 +1501,11 @@ elif is_about:
                 </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """), unsafe_allow_html=True)
 
     with col_right:
         # End-to-End Workflow Card
-        st.markdown("""
+        st.markdown(clean_html("""
         <div class="detail-panel" style="padding: 1.6rem 1.8rem; margin-bottom: 1.4rem;">
             <div style="display:flex; align-items:center; gap:0.6rem; font-size:1.05rem; font-weight:700; color:#fff; margin-bottom:1.2rem;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1547,10 +1554,10 @@ elif is_about:
                 </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """), unsafe_allow_html=True)
 
         # Knowledge Graph Design Card
-        st.markdown("""
+        st.markdown(clean_html("""
         <div class="detail-panel" style="padding: 1.6rem 1.8rem;">
             <div style="display:flex; align-items:center; gap:0.6rem; font-size:1.05rem; font-weight:700; color:#fff; margin-bottom:1.2rem;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1680,4 +1687,4 @@ elif is_about:
                 </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """), unsafe_allow_html=True)
