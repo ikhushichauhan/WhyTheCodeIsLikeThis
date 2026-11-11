@@ -12,14 +12,15 @@ load_dotenv()
 # ── Paths & Config ───────────────────────────────────────────────────────────
 
 BASE_DIR = os.path.dirname(__file__)
-FAVICON_PATH = os.path.join(BASE_DIR, "assets", "favicon.png")
+LOGO_PATH = os.path.join(BASE_DIR, "assets", "logo.png")
+FAVICON_PATH = LOGO_PATH if os.path.exists(LOGO_PATH) else os.path.join(BASE_DIR, "assets", "favicon.png")
 BG_PATH = os.path.join(BASE_DIR, "assets", "image.png")
 
 # Load Favicon
 favicon_img = Image.open(FAVICON_PATH) if os.path.exists(FAVICON_PATH) else None
 
 st.set_page_config(
-    page_title="Why The Code Is Like This",
+    page_title="Rationale",
     page_icon=favicon_img,
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -42,12 +43,13 @@ def clean_html(html_str: str) -> str:
 
 bg_b64 = get_asset_b64(BG_PATH)
 favicon_b64 = get_asset_b64(FAVICON_PATH)
+logo_b64 = get_asset_b64(LOGO_PATH)
 
 # Guarantee Favicon and Page Title in browser tab via JS
 if favicon_b64:
     st.markdown(f"""
     <script>
-        document.title = "Why The Code Is Like This";
+        document.title = "Rationale";
         function setFavicon() {{
             try {{
                 let link = document.querySelector("link[rel*='icon']") || document.createElement('link');
@@ -57,7 +59,7 @@ if favicon_b64:
                 document.getElementsByTagName('head')[0].appendChild(link);
                 
                 if (window.parent && window.parent.document) {{
-                    window.parent.document.title = "Why The Code Is Like This";
+                    window.parent.document.title = "Rationale";
                     let pLink = window.parent.document.querySelector("link[rel*='icon']") || window.parent.document.createElement('link');
                     pLink.type = 'image/png';
                     pLink.rel = 'shortcut icon';
@@ -698,16 +700,24 @@ a, a:visited {
 .cta-panel h2 { font-size: clamp(2rem, 4.4vw, 3.4rem); font-weight:300; letter-spacing:-0.04em; line-height:1.12; margin:0 0 2rem; color:#fff; -webkit-text-fill-color:#fff; }
 .cta-btns { display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; }
 .cta-btn-white, .cta-btn-glass { display:inline-block; padding: .95rem 2rem; border-radius:9999px; font-size:1.02rem; font-weight:500; text-decoration:none !important; transition: transform .2s ease; }
-.cta-btn-white { background:#fff; color:#1A1030 !important; }
+.cta-btn-white, .cta-btn-white:visited, .cta-btn-white:hover { background:#fff; color:#000 !important; }
 .cta-btn-glass { background: rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.35); color:#fff !important; backdrop-filter: blur(10px); }
 .cta-btn-white:hover, .cta-btn-glass:hover { transform: translateY(-2px); }
-.home-footer { width:100%; max-width:980px; margin: 4rem auto 1rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; gap:1.4rem; text-align:center; animation: fade-up 0.7s ease both; }
-.foot-group { display:flex; flex-direction:column; gap:.45rem; align-items:center; }
-.foot-title { font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:#C4B5FD; }
-.foot-links { display:flex; flex-wrap:wrap; justify-content:center; gap:.4rem 1.4rem; font-size:.92rem; color: rgba(235,229,252,0.72); }
-.foot-links a { color: rgba(235,229,252,0.82) !important; text-decoration:none !important; }
-.foot-links a:hover { color:#fff !important; }
-.foot-built { font-size:.85rem; color: rgba(235,229,252,0.6); }
+.home-footer { width:111.1111%; margin: 5rem 0 0 -5.5556%; padding: 3.2rem 0 1.6rem; border-top: 1px solid rgba(255,255,255,0.10); background: #0A0A0F; animation: fade-up 0.7s ease both; }
+.foot-inner { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; display:flex; flex-wrap:wrap; justify-content:space-between; gap: 2.5rem; text-align:left; }
+.foot-brand { display:flex; flex-direction:column; gap:.9rem; max-width: 300px; }
+.foot-brand-row { display:flex; align-items:center; gap:.7rem; font-size:1.25rem; font-weight:600; color:#fff; letter-spacing:-0.02em; }
+.foot-brand-row img { height: 30px; width:auto; filter: invert(1); mix-blend-mode: screen; }
+.foot-brand p { margin:0; font-size:.9rem; line-height:1.6; color: rgba(235,229,252,0.62); }
+.foot-cols { display:flex; flex-wrap:wrap; gap: 4.5rem; }
+.foot-group { display:flex; flex-direction:column; gap:.7rem; align-items:flex-start; }
+.foot-title { font-size:.92rem; font-weight:600; color:#fff; }
+.foot-group a { font-size:.9rem; color: rgba(235,229,252,0.68) !important; text-decoration:none !important; }
+.foot-group a:hover { color:#fff !important; text-decoration:underline !important; }
+.foot-bottom { max-width:1100px; margin: 2.6rem auto 0; padding: 1.3rem 1.5rem 0; border-top: 1px solid rgba(255,255,255,0.08); display:flex; flex-wrap:wrap; justify-content:space-between; gap:.6rem 2rem; font-size:.84rem; color: rgba(235,229,252,0.58); }
+.foot-bottom a { color: rgba(235,229,252,0.68) !important; text-decoration:none !important; }
+.foot-bottom a:hover { color:#fff !important; }
+@media (max-width: 640px) { .foot-cols { gap: 2.5rem; } }
 @media (max-width: 640px) {
     .home-section, .cta-panel { margin-top: 4.5rem; }
     .glass-box { padding: 1.3rem 1.2rem; }
@@ -739,11 +749,13 @@ a, a:visited {
     justify-self: start;
 }
 
+.brand-logo { height: 30px; width: auto; display: block; filter: invert(1); mix-blend-mode: screen; }
 .brand-title {
-    font-size: 16px;
-    font-weight: 500;
-    color: #FFFFFF;
+    font-size: 22px;
+    font-weight: 600;
+    color: #FFFFFF !important;
     letter-spacing: -0.03em;
+    font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 .nav-pill-group {
@@ -812,6 +824,7 @@ a, a:visited {
 }
 
 .nav-signup-btn {
+    gap: 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -852,7 +865,7 @@ a, a:visited {
 /* ── Hero Section (Home) ──────────────────────────────────────────────────── */
 .hero-container {
     text-align: center;
-    padding: 130px 1rem 1.8rem;
+    padding: 70px 1rem 1.8rem;
     max-width: 960px;
     margin: 0 auto;
     position: relative;
@@ -885,45 +898,52 @@ a, a:visited {
 }
 
 .hero-node-small {
-    width: 76px !important;
-    height: 76px !important;
+    width: 46px !important;
+    height: 46px !important;
 }
 
 .hero-node-center {
-    width: 98px !important;
-    height: 98px !important;
+    width: 58px !important;
+    height: 58px !important;
     border: 0.5px solid rgba(255, 255, 255, 0.18) !important;
 }
+.hero-node-small svg { width: 21px; height: 21px; }
+.hero-node-center svg { width: 27px; height: 27px; }
 
 .hero-connector-line {
-    width: 60px;
+    width: 46px;
     height: 1.5px;
     background: rgba(255, 255, 255, 0.25);
 }
 
-
-/* ── Travelling light: logo 1 -> logo 2 -> logo 3 (left to right), 6s loop ── */
+/* ── Travelling light: logo 1 -> logo 2 -> logo 3, soft dark-purple glow, circle swells slightly ── */
 .hero-connector-line { position: relative; overflow: visible; }
 .hero-connector-line::after {
-    content: ""; position: absolute; top: -0.25px; left: 0; width: 24px; height: 2px; border-radius: 2px; opacity: 0;
-    background: linear-gradient(90deg, transparent, #F5B5C8 45%, #C4B5FD 70%, transparent);
+    content: ""; position: absolute; top: -0.25px; left: 0; width: 20px; height: 2px; border-radius: 2px; opacity: 0;
+    background: linear-gradient(90deg, transparent, rgba(139,111,214,0.9) 60%, rgba(196,181,253,0.9), transparent);
 }
-.hero-line-left::after  { animation: streak-1 6s ease-in-out infinite; }   /* logo 1 -> logo 2 */
-.hero-line-right::after { animation: streak-2 6s ease-in-out infinite; }   /* logo 2 -> logo 3 */
+.hero-line-left::after  { animation: streak-1 6s ease-in-out infinite; }
+.hero-line-right::after { animation: streak-2 6s ease-in-out infinite; }
 .hero-glass-node::before {
-    content: ""; position: absolute; inset: -22px; border-radius: 50%; z-index: -1; opacity: 0; pointer-events: none;
-    background: radial-gradient(circle, rgba(143,120,217,0.85) 0%, rgba(91,63,181,0.45) 45%, transparent 72%);
-    filter: blur(6px);
+    content: ""; position: absolute; inset: -26px; border-radius: 50%; z-index: -1; opacity: 0; pointer-events: none;
+    background: radial-gradient(circle at 50% 50%, rgba(74,48,150,0.55) 0%, rgba(58,38,120,0.32) 38%, rgba(40,26,86,0.12) 62%, transparent 76%);
+    filter: blur(5px);
 }
+.hero-node-left   { animation: swell-1 6s ease-in-out infinite; }
+.hero-node-center { animation: swell-2 6s ease-in-out infinite; }
+.hero-node-right  { animation: swell-3 6s ease-in-out infinite; }
 .hero-node-left::before   { animation: glow-1 6s ease-in-out infinite; }
 .hero-node-center::before { animation: glow-2 6s ease-in-out infinite; }
 .hero-node-right::before  { animation: glow-3 6s ease-in-out infinite; }
-@keyframes streak-1 { 0%,6%{transform:translateX(-24px);opacity:0} 9%{opacity:1} 24%{transform:translateX(60px);opacity:1} 26%,100%{transform:translateX(60px);opacity:0} }
-@keyframes streak-2 { 0%,30%{transform:translateX(-24px);opacity:0} 33%{opacity:1} 48%{transform:translateX(60px);opacity:1} 50%,100%{transform:translateX(60px);opacity:0} }
+@keyframes streak-1 { 0%,6%{transform:translateX(-20px);opacity:0} 9%{opacity:1} 24%{transform:translateX(46px);opacity:1} 26%,100%{transform:translateX(46px);opacity:0} }
+@keyframes streak-2 { 0%,30%{transform:translateX(-20px);opacity:0} 33%{opacity:1} 48%{transform:translateX(46px);opacity:1} 50%,100%{transform:translateX(46px);opacity:0} }
 @keyframes glow-1 { 0%{opacity:0} 4%{opacity:1} 14%,100%{opacity:0} }
 @keyframes glow-2 { 0%,22%{opacity:0} 28%{opacity:1} 40%,100%{opacity:0} }
 @keyframes glow-3 { 0%,46%{opacity:0} 52%{opacity:1} 68%,100%{opacity:0} }
-@media (prefers-reduced-motion: reduce) { .hero-connector-line::after, .hero-glass-node::before { animation: none !important; } }
+@keyframes swell-1 { 0%{transform:scale(1)} 4%{transform:scale(1.1)} 14%,100%{transform:scale(1)} }
+@keyframes swell-2 { 0%,22%{transform:scale(1)} 28%{transform:scale(1.1)} 40%,100%{transform:scale(1)} }
+@keyframes swell-3 { 0%,46%{transform:scale(1)} 52%{transform:scale(1.1)} 68%,100%{transform:scale(1)} }
+@media (prefers-reduced-motion: reduce) { .hero-connector-line::after, .hero-glass-node::before, .hero-glass-node { animation: none !important; } }
 
 .hero-node-right-wrap {
     position: relative;
@@ -1798,6 +1818,8 @@ button[kind="secondary"] {
 </style>
 """, unsafe_allow_html=True)
 
+brand_logo_html = f'<img class="brand-logo" src="data:image/png;base64,{logo_b64}" alt="logo">' if logo_b64 else ""
+
 # ── Render Universal Top Navigation Bar ───────────────────────────────────────
 
 cur_page = st.session_state.nav
@@ -1830,7 +1852,7 @@ pkg_icon_svg = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" st
 
 right_header_elem = """
 <div class="nav-right-actions">
-    <a href="https://github.com/pallets/flask" target="_blank" class="nav-signup-btn">GitHub</a>
+    <a href="https://github.com/pallets/flask" target="_blank" class="nav-signup-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.69 1.25 3.35.96.1-.74.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.18 1.83 1.18 3.09 0 4.42-2.69 5.39-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg><span>GitHub</span></a>
 </div>
 """
 
@@ -1838,7 +1860,7 @@ right_header_elem = """
 st.markdown(clean_html(f"""
 <div class="top-navbar">
     <a href="?page=home" target="_self" class="brand-container">
-        <span class="brand-title">Why The Code Is Like This</span>
+        {brand_logo_html}<span class="brand-title">Rationale</span>
     </a>
     <div class="nav-pill-group">
         <a href="?page=home" target="_self" class="nav-link {'active' if is_home else ''}">Home</a>
@@ -1921,7 +1943,7 @@ if is_home:
             <div class="hero-nodes-row">
                 <!-- 1. Code Investigation (double size, white logo, white boundary, black inside, no glow) -->
                 <div class="hero-glass-node hero-node-small hero-node-left" title="Code Investigation">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="7"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         <polyline points="9.5 9 7.5 11 9.5 13"></polyline>
@@ -1931,7 +1953,7 @@ if is_home:
                 <div class="hero-connector-line hero-line-left"></div>
                 <!-- 2. Decision History (center, prominent, double size, white logo, white boundary, black inside) -->
                 <div class="hero-glass-node hero-node-center" title="Decision History">
-                    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="7" cy="17" r="2.5"></circle>
                         <circle cx="17" cy="9" r="2.5"></circle>
                         <line x1="7" y1="5" x2="7" y2="14.5"></line>
@@ -1941,7 +1963,7 @@ if is_home:
                 <div class="hero-connector-line hero-line-right"></div>
                 <!-- 3. Verified Evidence (no glow, same style as others) -->
                 <div class="hero-glass-node hero-node-small hero-node-right" title="Verified Evidence">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                         <polyline points="9 12 11 14 15 10"></polyline>
                     </svg>
@@ -2213,7 +2235,6 @@ if is_home:
         with st.expander("Why Neo4j?"):
             st.write("Decisions, events and evidence are connected, and a graph returns that connected history in one query.")
 
-    _team_li = f"<span>{TEAM_NAME}</span>" if TEAM_NAME else ""
     st.markdown(clean_html(f"""
     <div class="cta-panel">
         <h2>Find the reason.<br>Fix your code.</h2>
@@ -2223,13 +2244,19 @@ if is_home:
         </div>
     </div>
     <div class="home-footer">
-        <div class="foot-group"><span class="foot-title">Product</span>
-            <div class="foot-links"><a href="?page=home" target="_self">Home</a><a href="?page=explore" target="_self">Explore Decisions</a><a href="?page=about" target="_self">About</a></div></div>
-        <div class="foot-group"><span class="foot-title">Resources</span>
-            <div class="foot-links"><a href="{_repo_url}" target="_blank" rel="noopener">GitHub repository</a><a href="https://github.com/pallets/flask" target="_blank" rel="noopener">Flask repository</a></div></div>
-        <div class="foot-group"><span class="foot-title">Project</span>
-            <div class="foot-links">{_team_li}<span>hackFront India submission</span></div></div>
-        <div class="foot-built">Built with Python, Streamlit and Neo4j AuraDB.</div>
+        <div class="foot-inner">
+            <div class="foot-brand">
+                <div class="foot-brand-row">{brand_logo_html}<span>Rationale</span></div>
+                <p>Find the reason behind the code. Every answer comes from original GitHub records.</p>
+            </div>
+            <div class="foot-cols">
+                <div class="foot-group"><span class="foot-title">Product</span>
+                    <a href="?page=home" target="_self">Home</a><a href="?page=explore" target="_self">Explore Decisions</a><a href="?page=about" target="_self">About</a></div>
+                <div class="foot-group"><span class="foot-title">Resources</span>
+                    <a href="{_repo_url}" target="_blank" rel="noopener">GitHub repository</a><a href="https://github.com/pallets/flask" target="_blank" rel="noopener">Flask repository</a></div>
+            </div>
+        </div>
+        <div class="foot-bottom"><span>© 2026 Rationale</span><span>Built with Python, Streamlit and Neo4j AuraDB.</span></div>
     </div>
     """), unsafe_allow_html=True)
 
