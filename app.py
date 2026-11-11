@@ -357,36 +357,44 @@ def render_migration_and_timeline(decision_data):
     mig = MIGRATION_DATA.get(entity)
     if mig:
         st.markdown(clean_html("""
-        <div class="detail-section-title" style="margin-top: 1.8rem;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="migration-header-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B6FD6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M16 3h5v5"></path>
                 <path d="M4 20L21 3"></path>
                 <path d="M21 16v5h-5"></path>
                 <path d="M15 15l6 6"></path>
                 <path d="M4 4l5 5"></path>
             </svg>
-            Migration Guidance
+            <span class="detail-section-title" style="margin:0;">Migration Guidance</span>
+            <span class="illustrative-pill">Illustrative example</span>
         </div>
         """), unsafe_allow_html=True)
 
-        st.info(f"**Official Source Recommendation:**\n\n{mig['official_guidance']}")
-        st.markdown(f"**Explanation:** {mig['explanation']}")
-        st.caption(f"**Compatibility Note:** {mig['compatibility']}")
+        st.markdown(clean_html(f"""
+        <div class="rationale-quote-box" style="margin-bottom: 0.8rem;">
+            <div style="font-size: 0.82rem; color: #C4B5FD; font-weight: 600; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.05em;">Official Guidance</div>
+            <div>{mig['official_guidance']}</div>
+            <div style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.88rem; line-height: 1.6;">{mig['explanation']}</div>
+        </div>
+        """), unsafe_allow_html=True)
+
+        if mig.get("compatibility"):
+            st.caption(f"**Compatibility Note:** {mig['compatibility']}")
 
         st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
         col_b, col_a = st.columns(2)
         with col_b:
-            st.markdown("**Deprecated Pattern** *(Illustrative Example)*")
+            st.markdown("**Before** *(Illustrative example)*")
             st.code(mig["before_code"], language="python")
         with col_a:
-            st.markdown("**Recommended Pattern** *(Illustrative Example)*")
+            st.markdown("**After** *(Illustrative example)*")
             st.code(mig["after_code"], language="python")
 
     events = decision_data.get("events", [])
     if events:
         st.markdown(clean_html("""
         <div class="detail-section-title" style="margin-top: 1.8rem;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B6FD6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
@@ -434,331 +442,702 @@ if "search_query" not in st.session_state:
 
 # ── SaaS Developer-Tool Design System & CSS ───────────────────────────────────
 
-st.markdown(f"""
+st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-:root {{
-    --bg-dark: #111318;
-    --surface: rgba(22, 25, 34, 0.75);
-    --surface-solid: #161922;
-    --surface-hover: rgba(28, 32, 44, 0.85);
+:root {
+    --bg-dark: #0A0A0F;
+    --surface: rgba(255, 255, 255, 0.02);
+    --surface-solid: #121218;
+    --surface-hover: rgba(255, 255, 255, 0.04);
     --border: rgba(255, 255, 255, 0.08);
-    --border-hover: rgba(167, 139, 250, 0.35);
-    --accent: #A78BFA;
-    --accent-hover: #C4B5FD;
-    --accent-muted: rgba(167, 139, 250, 0.12);
-    --accent-border: rgba(167, 139, 250, 0.28);
-    --text-primary: #F8FAFC;
-    --text-secondary: #94A3B8;
-    --text-muted: #64748B;
-}}
+    --border-hover: rgba(143, 120, 217, 0.4);
+    --accent: #8F78D9;
+    --accent-hover: #D4C9F7;
+    --accent-muted: rgba(143, 120, 217, 0.12);
+    --accent-border: rgba(143, 120, 217, 0.3);
+    --text-primary: #F4F2FA;
+    --text-secondary: #A09EB5;
+    --text-muted: #6C6A80;
+}
 
-* {{
+* {
     box-sizing: border-box;
-}}
+}
 
-html, body, [data-testid="stApp"] {{
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+/* 1. Global Typography */
+html, body, .stApp, h1, h2, h3, p, label, button, input {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+html, body, [data-testid="stApp"] {
     color: var(--text-primary);
     background-color: var(--bg-dark);
-}}
+}
 
-[data-testid="stApp"] {{
-    background-color: var(--bg-dark);
+/* Clean dark background: no harsh white lines on pure black */
+[data-testid="stApp"] {
+    background-color: #0A0A0F;
+    background-image: none !important;
     min-height: 100vh;
     position: relative;
     overflow-x: hidden;
-}}
+}
 
-/* Very subtle low-opacity backdrop image */
-[data-testid="stApp"]::before {{
-    content: "";
-    position: fixed;
-    inset: 0;
-    background: url("data:image/png;base64,{bg_b64}") center center / cover no-repeat fixed;
-    opacity: 0.04;
-    pointer-events: none;
-    z-index: 0;
-}}
-
-/* Professional full-width SaaS layout with 6% left/right margins */
-.block-container {{
-    max-width: 100% !important;
-    padding-left: 6% !important;
-    padding-right: 6% !important;
-    padding-top: 1.25rem !important;
-    padding-bottom: 4rem !important;
-    position: relative;
-    z-index: 1;
-}}
-
-#MainMenu, footer, header[data-testid="stHeader"] {{
+/* Hide Streamlit heading anchor links / chain icons */
+[data-testid="stHeaderActionElements"],
+h1 a, h2 a, h3 a,
+.hero-title a,
+a[data-testid="stHeaderActionElements"],
+div[data-testid="stHeaderActionElements"],
+.stHeading a,
+a.anchorjs-link {
     display: none !important;
-}}
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
 
-a {{
+/* 2. ZERO OUT TOP NAVBAR GAP COMPLETELY */
+header[data-testid="stHeader"], [data-testid="stHeader"] {
+    display: none !important;
+    height: 0px !important;
+    min-height: 0px !important;
+    max-height: 0px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    visibility: hidden !important;
+}
+
+[data-testid="stDecoration"], [data-testid="stToolbar"], div.stAppDeployButton {
+    display: none !important;
+    height: 0px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.main, [data-testid="stAppViewContainer"], [data-testid="stMain"], section[data-testid="stMain"] {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+.main .block-container, 
+[data-testid="stAppViewContainer"] .block-container, 
+[data-testid="stAppViewBlockContainer"],
+[data-testid="stMainBlockContainer"],
+.block-container {
+    max-width: 100% !important;
+    padding-left: 5% !important;
+    padding-right: 5% !important;
+    padding-top: 0.15rem !important;
+    margin-top: 0 !important;
+    padding-bottom: 4rem !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+[data-testid="stVerticalBlock"] {
+    gap: 0.6rem !important;
+}
+
+[data-testid="stVerticalBlock"]:first-child,
+[data-testid="stVerticalBlock"] > div:first-child,
+div[data-testid="stElementContainer"]:first-child {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* Collapse empty Streamlit markdown/style/script containers that add gap */
+div[data-testid="stElementContainer"]:has(script),
+div[data-testid="stElementContainer"]:has(style),
+div[data-testid="stElementContainer"]:has([data-testid="stMarkdownContainer"]:empty),
+div[data-testid="stMarkdownContainer"]:empty {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 0 !important;
+    position: absolute !important;
+}
+
+/* Default for other pages: simple black without home hero glow */
+.block-container::before {
+    content: none !important;
+}
+
+#MainMenu, footer {
+    display: none !important;
+}
+
+/* 3. Link Overrides (No default Streamlit blue) */
+a, a:visited {
     text-decoration: none !important;
-    color: inherit;
-}}
+    color: inherit !important;
+}
 
-/* ── Top Navigation Bar ───────────────────────────────────────────────────── */
-.top-navbar {{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+.brand-container, .brand-container:visited {
+    color: #F4F2FA !important;
+}
+
+.decision-badge, .decision-badge:visited {
+    color: #8B6FD6 !important;
+}
+
+/* ── Motion & Keyframes ───────────────────────────────────────────────────── */
+@keyframes fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.hero-container, .feature-card, .detail-panel, .decision-card-item, .methodology-card, .glass-box {
+    animation: fade-up 0.7s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, .hero-container, .feature-card, .detail-panel, .decision-card-item, .methodology-card, .home-section, .cta-panel, .home-footer, .glass-box {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+
+/* ── Home / About content sections (stacked, glass) ───────────────────────── */
+.home-section {
     width: 100%;
-    padding: 0.8rem 1.4rem;
-    margin-bottom: 2.2rem;
-    background: var(--surface);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-    flex-wrap: wrap;
-    gap: 1rem;
-}}
+    max-width: 980px;
+    margin: 6rem auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.4rem;
+    animation: fade-up 0.7s ease both;
+}
+.sec-head { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.sec-pill {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
+    color: #D4C9F7; background: rgba(196,181,253,0.10);
+    border: 1px solid rgba(196,181,253,0.30); border-radius: 9999px; padding: 0.38rem 0.95rem;
+}
+.sec-title {
+    font-size: clamp(1.9rem, 4vw, 3rem); font-weight: 300; line-height: 1.15; letter-spacing: -0.03em; margin: 0;
+    background: linear-gradient(180deg, #FFFFFF 0%, #F3F0FE 50%, #E2D9FD 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: #fff;
+}
+.sec-sub { font-size: 1.02rem; line-height: 1.7; color: rgba(235,229,252,0.72); max-width: 680px; margin: 0; }
+.glass-box {
+    background: linear-gradient(145deg, rgba(255,255,255,0.075), rgba(255,255,255,0.025));
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(196,181,253,0.18); border-radius: 22px; padding: 1.6rem 1.9rem;
+    box-shadow: 0 10px 40px rgba(10,6,24,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: transform .25s ease, border-color .25s ease;
+}
+.glass-box:hover { transform: translateY(-2px); border-color: rgba(196,181,253,0.38); }
+.glass-box h4 { padding:0 !important; margin: 0 0 .4rem !important; font-size: 1.08rem; font-weight: 600; color: #fff; letter-spacing: -0.01em; }
+.glass-box p { margin: 0 !important; padding:0 !important; font-size: .96rem; line-height: 1.7; color: rgba(235,229,252,0.76); }
+.glass-row { display: flex; align-items: flex-start; gap: 1.1rem; }
+.glass-ico {
+    flex: 0 0 auto; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    color: #D4C9F7; background: rgba(196,181,253,0.12); border: 1px solid rgba(196,181,253,0.28);
+}
+.step-tag { font-family: 'JetBrains Mono', monospace; font-size: .74rem; letter-spacing: .14em; color: #C4B5FD; margin-bottom: .35rem; display:block; }
+.flow-link { display:flex; justify-content:center; height: 26px; }
+.flow-link::before { content:""; width:1px; height:100%; background: linear-gradient(to bottom, rgba(196,181,253,0.7), rgba(196,181,253,0.1)); }
+.code-win {
+    background: rgba(8,6,16,0.78); border: 1px solid rgba(196,181,253,0.2); border-radius: 16px; overflow: hidden;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+.code-win-bar { display:flex; align-items:center; gap:7px; padding: .7rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.035); }
+.code-win-bar i { width:10px; height:10px; border-radius:50%; background: rgba(255,255,255,0.22); display:block; }
+.code-win-bar span { margin-left: .6rem; font-family:'JetBrains Mono',monospace; font-size:.76rem; color: rgba(235,229,252,0.66); }
+.code-win pre { margin:0 !important; padding: 1.2rem 1.4rem !important; font-family:'JetBrains Mono',monospace; font-size:.86rem; line-height:1.75; color:#E8E2FB; overflow-x:auto; white-space:pre; background:transparent; border:none; }
+.code-win .kw { color:#C4B5FD; } .code-win .err { color:#F5B5C8; } .code-win .str { color:#B8E0C8; }
+.q-line { border-left: 3px solid #C4B5FD; padding: .35rem 0 .35rem 1.1rem; font-size: 1.04rem; color: rgba(245,242,255,0.92); }
+.closing-line { text-align:center; font-size: 1.12rem; color:#E2D9FD; font-weight:500; margin-top:.4rem; }
+.check-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.75rem; }
+.check-list li { display:flex; gap:.7rem; align-items:flex-start; color: rgba(245,242,255,0.88); font-size:.98rem; line-height:1.55; }
+.check-list li svg { flex:0 0 auto; margin-top:3px; color:#C4B5FD; }
+.mono-chip { font-family:'JetBrains Mono',monospace; font-size:.82rem; color:#D4C9F7; }
+.note-muted { text-align:center; font-size:.9rem; color: rgba(235,229,252,0.62); font-style: italic; margin: .4rem auto 0; max-width: 620px; line-height:1.6; }
+.road-step { text-align:center; }
+.road-step .glass-ico { margin: 0 auto .8rem; }
+.road-step h4 { font-size: 1rem; }
+.road-tag { font-family:'JetBrains Mono',monospace; font-size:.72rem; color:#C4B5FD; letter-spacing:.12em; }
 
-.brand-container {{
+/* FAQ expanders as glass cards */
+.faq-wrap { width:100%; max-width:980px; margin: 1.4rem auto 0; }
+.st-key-faq_block [data-testid="stExpander"] {
+    background: linear-gradient(145deg, rgba(255,255,255,0.075), rgba(255,255,255,0.025)) !important;
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(196,181,253,0.18) !important; border-radius: 18px !important; margin-bottom: .8rem; overflow: hidden;
+}
+.st-key-faq_block [data-testid="stExpander"] details, .st-key-faq_block [data-testid="stExpander"] summary { background: transparent !important; }
+.st-key-faq_block [data-testid="stExpander"] summary { padding: 1rem 1.4rem !important; }
+.st-key-faq_block [data-testid="stExpander"] summary p { color:#fff !important; font-weight:500; font-size:1.02rem; }
+.st-key-faq_block [data-testid="stExpander"] [data-testid="stExpanderDetails"] p { color: rgba(235,229,252,0.80) !important; line-height:1.7; }
+.st-key-faq_block { max-width: 980px; margin: 0 auto; }
+
+/* CTA panel + footer */
+.cta-panel {
+    position: relative; width: 100%; max-width: 980px; margin: 6rem auto 0; padding: 4.2rem 1.5rem 5.2rem; text-align:center; overflow:hidden;
+    border: 1px solid rgba(255,255,255,0.10); border-radius: 36px;
+    background: radial-gradient(ellipse 90% 120% at 50% 0%, #0D0B12 0%, #0D0B12 40%, #1E1630 55%, #382760 66%, #4E3588 74%, #745CB4 82%, #9381CE 90%, #D2CDE8 97%, #FFFFFF 100%), #0D0B12;
+    animation: fade-up 0.7s ease both;
+}
+.cta-panel h2 { font-size: clamp(2rem, 4.4vw, 3.4rem); font-weight:300; letter-spacing:-0.04em; line-height:1.12; margin:0 0 2rem; color:#fff; -webkit-text-fill-color:#fff; }
+.cta-btns { display:flex; flex-wrap:wrap; justify-content:center; gap:1rem; }
+.cta-btn-white, .cta-btn-glass { display:inline-block; padding: .95rem 2rem; border-radius:9999px; font-size:1.02rem; font-weight:500; text-decoration:none !important; transition: transform .2s ease; }
+.cta-btn-white { background:#fff; color:#1A1030 !important; }
+.cta-btn-glass { background: rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.35); color:#fff !important; backdrop-filter: blur(10px); }
+.cta-btn-white:hover, .cta-btn-glass:hover { transform: translateY(-2px); }
+.home-footer { width:100%; max-width:980px; margin: 4rem auto 1rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.08); display:flex; flex-direction:column; gap:1.4rem; text-align:center; animation: fade-up 0.7s ease both; }
+.foot-group { display:flex; flex-direction:column; gap:.45rem; align-items:center; }
+.foot-title { font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:#C4B5FD; }
+.foot-links { display:flex; flex-wrap:wrap; justify-content:center; gap:.4rem 1.4rem; font-size:.92rem; color: rgba(235,229,252,0.72); }
+.foot-links a { color: rgba(235,229,252,0.82) !important; text-decoration:none !important; }
+.foot-links a:hover { color:#fff !important; }
+.foot-built { font-size:.85rem; color: rgba(235,229,252,0.6); }
+@media (max-width: 640px) {
+    .home-section, .cta-panel { margin-top: 4.5rem; }
+    .glass-box { padding: 1.3rem 1.2rem; }
+    .glass-row { flex-direction: column; }
+}
+
+/* ── Top Navigation Bar (Flat 3-Column SaaS Layout right at top) ─────────── */
+.top-navbar {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important;
+    align-items: center !important;
+    width: auto !important;
+    height: 56px !important;
+    padding: 0 28px !important;
+    /* edge-to-edge bar: cancels the page's 5% side padding */
+    margin: 0 -5.5556% 6px -5.5556% !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.brand-container {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     text-decoration: none !important;
-}}
+    justify-self: start;
+}
 
-.brand-icon {{
+.brand-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #FFFFFF;
+    letter-spacing: -0.03em;
+}
+
+.nav-pill-group {
+    display: flex;
+    align-items: center;
+    gap: 52px;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    justify-self: center;
+}
+
+.nav-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.2rem;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.02em;
+    color: rgba(255, 255, 255, 0.78) !important;
+    text-decoration: none !important;
+    background: transparent !important;
+    border: none !important;
+    transition: color 0.15s ease;
+}
+
+.nav-link:visited {
+    color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.nav-link:hover, .nav-link.active {
+    color: #FFFFFF !important;
+    background: transparent !important;
+    font-weight: 500 !important;
+}
+
+.nav-right-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    justify-self: end;
+}
+
+.nav-login-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    background: var(--accent-muted);
-    border: 1px solid var(--accent-border);
-    border-radius: 8px;
-    color: var(--accent);
-}}
-
-.brand-title {{
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-}}
-
-.nav-pill-group {{
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border);
-    padding: 0.25rem 0.35rem;
-    border-radius: 9px;
-    flex-wrap: wrap;
-}}
-
-.nav-link {{
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 1rem;
-    border-radius: 7px;
-    font-size: 0.86rem;
-    font-weight: 500;
-    color: var(--text-secondary);
+    padding: 0.45rem 1.25rem !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 9999px !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
     text-decoration: none !important;
     transition: all 0.15s ease;
-}}
+}
 
-.nav-link:hover {{
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
-}}
+.nav-login-btn:visited {
+    color: #FFFFFF !important;
+}
 
-.nav-link.active {{
-    color: var(--text-primary);
-    background: var(--accent-muted);
-    border: 1px solid var(--accent-border);
-    font-weight: 600;
-}}
+.nav-login-btn:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #FFFFFF !important;
+}
 
-.github-btn {{
+.nav-signup-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 1rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: 0.85rem;
-    font-weight: 500;
+    justify-content: center;
+    height: 35px;
+    padding: 0 26px !important;
+    background: #FFFFFF !important;
+    color: #0A0A0F !important;
+    border: 1px solid #FFFFFF !important;
+    border-radius: 9999px !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.02em;
     text-decoration: none !important;
+    box-shadow: none !important;
     transition: all 0.15s ease;
-}}
+}
 
-.github-btn:hover {{
-    background: rgba(255, 255, 255, 0.07);
-    border-color: var(--border-hover);
-    color: #fff;
-}}
+.nav-signup-btn:visited {
+    color: #0A0A0F !important;
+}
 
-.step-indicator {{
+.nav-signup-btn:hover {
+    background: #F4F2FA !important;
+    color: #0A0A0F !important;
+    transform: translateY(-1px);
+}
+
+.step-indicator {
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--accent);
     background: var(--accent-muted);
     border: 1px solid var(--accent-border);
-    border-radius: 6px;
-    padding: 0.35rem 0.75rem;
-}}
+    border-radius: 9999px;
+    padding: 0.35rem 0.85rem;
+}
 
 /* ── Hero Section (Home) ──────────────────────────────────────────────────── */
-.hero-container {{
+.hero-container {
     text-align: center;
-    padding: 2.8rem 1rem 1.8rem;
-    max-width: 860px;
+    padding: 130px 1rem 1.8rem;
+    max-width: 960px;
     margin: 0 auto;
-}}
+    position: relative;
+}
 
-.hero-badge {{
+/* Connected Circular Nodes (Double Size, Black Fill, White Boundary, No Node Glow) */
+.hero-nodes-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 0 auto 0;
+    position: relative;
+    z-index: 1;
+}
+
+.hero-glass-node {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #0A0A0F !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.15) !important;
+    color: #FFFFFF !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    position: relative;
+    z-index: 1;
+}
+
+.hero-node-small {
+    width: 76px !important;
+    height: 76px !important;
+}
+
+.hero-node-center {
+    width: 98px !important;
+    height: 98px !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.18) !important;
+}
+
+.hero-connector-line {
+    width: 60px;
+    height: 1.5px;
+    background: rgba(255, 255, 255, 0.25);
+}
+
+
+/* ── Travelling light: logo 1 -> logo 2 -> logo 3 (left to right), 6s loop ── */
+.hero-connector-line { position: relative; overflow: visible; }
+.hero-connector-line::after {
+    content: ""; position: absolute; top: -0.25px; left: 0; width: 24px; height: 2px; border-radius: 2px; opacity: 0;
+    background: linear-gradient(90deg, transparent, #F5B5C8 45%, #C4B5FD 70%, transparent);
+}
+.hero-line-left::after  { animation: streak-1 6s ease-in-out infinite; }   /* logo 1 -> logo 2 */
+.hero-line-right::after { animation: streak-2 6s ease-in-out infinite; }   /* logo 2 -> logo 3 */
+.hero-glass-node::before {
+    content: ""; position: absolute; inset: -22px; border-radius: 50%; z-index: -1; opacity: 0; pointer-events: none;
+    background: radial-gradient(circle, rgba(143,120,217,0.85) 0%, rgba(91,63,181,0.45) 45%, transparent 72%);
+    filter: blur(6px);
+}
+.hero-node-left::before   { animation: glow-1 6s ease-in-out infinite; }
+.hero-node-center::before { animation: glow-2 6s ease-in-out infinite; }
+.hero-node-right::before  { animation: glow-3 6s ease-in-out infinite; }
+@keyframes streak-1 { 0%,6%{transform:translateX(-24px);opacity:0} 9%{opacity:1} 24%{transform:translateX(60px);opacity:1} 26%,100%{transform:translateX(60px);opacity:0} }
+@keyframes streak-2 { 0%,30%{transform:translateX(-24px);opacity:0} 33%{opacity:1} 48%{transform:translateX(60px);opacity:1} 50%,100%{transform:translateX(60px);opacity:0} }
+@keyframes glow-1 { 0%{opacity:0} 4%{opacity:1} 14%,100%{opacity:0} }
+@keyframes glow-2 { 0%,22%{opacity:0} 28%{opacity:1} 40%,100%{opacity:0} }
+@keyframes glow-3 { 0%,46%{opacity:0} 52%{opacity:1} 68%,100%{opacity:0} }
+@media (prefers-reduced-motion: reduce) { .hero-connector-line::after, .hero-glass-node::before { animation: none !important; } }
+
+.hero-node-right-wrap {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    background: var(--accent-muted);
-    border: 1px solid var(--accent-border);
-    border-radius: 9999px;
-    padding: 0.35rem 1rem;
-    font-size: 0.82rem;
-    font-weight: 500;
-    color: var(--accent);
-    margin-bottom: 1.4rem;
-}}
+    justify-content: center;
+}
 
-.hero-title {{
-    font-size: 3.2rem;
-    font-weight: 800;
-    line-height: 1.15;
-    letter-spacing: -0.03em;
-    color: var(--text-primary);
-    margin: 0 0 0.8rem;
-}}
+/* Purple half-disc glow behind the right icon */
+.hero-purple-halfdisc {
+    position: absolute;
+    width: 140px;
+    height: 75px;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at 50% 100%, rgba(143, 120, 217, 0.45) 0%, rgba(91, 63, 181, 0.25) 50%, transparent 80%);
+    border-radius: 140px 140px 0 0;
+    filter: blur(14px);
+    z-index: 0;
+    pointer-events: none;
+}
 
-.hero-title-accent {{
-    color: var(--accent);
-}}
+.get-started-pill,
+.get-started-pill:link,
+.get-started-pill:visited,
+.get-started-pill:hover,
+.get-started-pill:active,
+.get-started-pill:focus,
+.get-started-pill * {
+    color: #0A0A0F !important;
+    text-decoration: none !important;
+    background: #FFFFFF !important;
+}
 
-.hero-subtitle {{
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 0.6rem;
-}}
+.hero-nodes-row, .hero-title, .hero-subtitle, [data-testid="stForm"], .chips-row {
+    position: relative;
+    z-index: 1;
+}
 
-.hero-desc {{
-    font-size: 0.98rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    max-width: 680px;
-    margin: 0 auto 2.2rem;
-}}
+/* Hero Title ~92px, font-weight 300, white to muted lavender gradient */
+.hero-title, .hero-title * {
+    font-weight: 300 !important;
+}
 
-/* ── Form & Input Styling ─────────────────────────────────────────────────── */
-[data-testid="stForm"] {{
+.hero-title {
+    font-size: clamp(2.6rem, 5vw, 96px) !important;
+    line-height: 1.13 !important;
+    letter-spacing: -0.05em !important;
+    margin: 56px auto 2px !important;
+    text-align: center !important;
+    max-width: 1100px !important;
+    /* line 1: pure white */
+    background: linear-gradient(180deg, #FFFFFF 0%, #F6F4FE 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+.hero-title-gradient, .hero-title-accent {
+    display: block !important;
+    font-weight: 300 !important;
+    /* line 2: soft lavender-white, same as the reference */
+    background: linear-gradient(180deg, #F3F0FE 0%, #E2D9FD 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+/* Centered Hero Subtitle (~21px, muted lavender) */
+.hero-subtitle {
+    font-size: clamp(1rem, 1.1vw, 21px) !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.02em !important;
+    color: rgba(235, 229, 252, 0.62) !important;
+    line-height: 1.6 !important;
+    max-width: 640px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-bottom: 56px !important;
+    text-align: center !important;
+}
+
+/* Headings on all pages (Same font style as Hero: Plus Jakarta Sans, 300 weight, white-to-lavender gradient) */
+.section-heading, .feature-title, h1, h2 {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-weight: 300 !important;
+    letter-spacing: -0.04em !important;
+    background: linear-gradient(180deg, #FFFFFF 0%, #FFFFFF 50%, #D4C9F7 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+/* ── Form & Input Styling (White Search Bar with Black Text & Matching Button Height) ── */
+[data-testid="stForm"] {
     border: none !important;
     padding: 0 !important;
     background: transparent !important;
     width: 100%;
-    max-width: 760px;
+    max-width: 680px;
     margin: 0 auto;
-}}
+}
 
-[data-testid="stTextInput"] {{
+[data-testid="stTextInput"] {
     margin-bottom: 0 !important;
-}}
+}
 
-[data-testid="stTextInput"] input {{
-    background: var(--surface-solid) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 10px !important;
-    color: var(--text-primary) !important;
-    font-size: 0.95rem !important;
-    padding: 0.8rem 1.25rem !important;
-    transition: all 0.2s ease !important;
-}}
-
-[data-testid="stTextInput"] input:focus {{
-    border-color: var(--accent) !important;
-    box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.2) !important;
-}}
-
-button[kind="primaryFormSubmit"], button[kind="primary"] {{
-    background: var(--accent) !important;
-    color: #111318 !important;
-    font-weight: 600 !important;
-    font-size: 0.9rem !important;
-    padding: 0.75rem 1.5rem !important;
+[data-baseweb="base-input"] {
+    background: transparent !important;
     border: none !important;
-    border-radius: 10px !important;
+    box-shadow: none !important;
+}
+
+[data-baseweb="input"] {
+    background: #FFFFFF !important;
+    border-radius: 9999px !important;
+    border: 1px solid #FFFFFF !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+    height: 52px !important;
+    min-height: 52px !important;
+}
+
+[data-baseweb="input"]:focus-within {
+    border-color: #8F78D9 !important;
+    box-shadow: 0 0 0 3px rgba(143, 120, 217, 0.35), 0 4px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Newer Streamlit versions put the input inside stTextInputRootElement (no data-baseweb), so style it the same way */
+[data-testid="stTextInputRootElement"] {
+    background: #FFFFFF !important;
+    border-radius: 9999px !important;
+    border: 1px solid #FFFFFF !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+    height: 52px !important;
+    min-height: 52px !important;
+}
+
+[data-testid="stTextInputRootElement"]:focus-within {
+    border-color: #8F78D9 !important;
+    box-shadow: 0 0 0 3px rgba(143, 120, 217, 0.35), 0 4px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-testid="stTextInput"] input {
+    background: transparent !important;
+    border: none !important;
+    color: #0A0A0F !important;
+    font-size: 0.98rem !important;
+    font-weight: 500 !important;
+    padding: 0 1.5rem !important;
+    height: 52px !important;
+}
+
+[data-testid="stTextInput"] input::placeholder {
+    color: rgba(10, 10, 15, 0.55) !important;
+    font-weight: 400 !important;
+}
+
+/* Matching Search Button (Exact same 52px height as search bar) */
+button[kind="primaryFormSubmit"], button[kind="primary"] {
+    background: #0A0A0F !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    font-size: 0.96rem !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    padding: 0 2rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
     transition: all 0.2s ease !important;
     cursor: pointer !important;
-}}
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    min-width: 105px !important;
+}
 
-button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
-    background: var(--accent-hover) !important;
+button[kind="primaryFormSubmit"] *,
+button[kind="primary"] * {
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+}
+
+button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {
+    background: #1C1A27 !important;
+    border-color: #8F78D9 !important;
+    color: #FFFFFF !important;
     transform: translateY(-1px) !important;
-    box-shadow: 0 4px 14px rgba(167, 139, 250, 0.25) !important;
-}}
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
+}
 
-/* ── Search Chips ─────────────────────────────────────────────────────────── */
-.chips-row {{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.65rem;
-    flex-wrap: wrap;
-    margin: 1.4rem auto 3rem;
-    font-size: 0.88rem;
-    color: var(--text-muted);
-}}
-
-.chip-btn {{
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.4rem 0.95rem;
-    font-size: 0.82rem;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--text-secondary);
-    text-decoration: none !important;
-    transition: all 0.15s ease;
-}}
-
-.chip-btn:hover {{
-    color: var(--text-primary);
-    background: var(--accent-muted);
-    border-color: var(--accent-border);
-    transform: translateY(-1px);
-}}
+button[kind="secondary"] {
+    border-radius: 9999px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: #F4F2FA !important;
+}
 
 /* ── 3 Feature Cards (Home) ───────────────────────────────────────────────── */
-.feature-grid {{
+.feature-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.4rem;
     width: 100%;
-    margin: 0 auto;
-}}
+    margin: 5.5rem auto 3rem !important;
+}
 
-.feature-card {{
+.feature-card {
     background: var(--surface);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 16px;
     padding: 1.6rem 1.5rem;
     display: flex;
     align-items: flex-start;
@@ -767,14 +1146,14 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     min-width: 0;
     overflow: visible;
-}}
+}
 
-.feature-card:hover {{
+.feature-card:hover {
     border-color: var(--border-hover);
     transform: translateY(-2px);
-}}
+}
 
-.feature-icon-box {{
+.feature-icon-box {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -785,25 +1164,24 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     border-radius: 10px;
     color: var(--accent);
     flex-shrink: 0;
-}}
+}
 
-.feature-title {{
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-primary);
+.feature-title {
+    font-size: 1.05rem;
+    font-weight: 600;
     margin: 0 0 0.35rem;
-}}
+}
 
-.feature-desc {{
+.feature-desc {
     font-size: 0.86rem;
     color: var(--text-secondary);
     line-height: 1.5;
     margin: 0;
     word-break: break-word;
-}}
+}
 
 /* ── Section Header Row ───────────────────────────────────────────────────── */
-.section-header-row {{
+.section-header-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -811,15 +1189,15 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     flex-wrap: wrap;
     gap: 1rem;
     width: 100%;
-}}
+}
 
-.section-title-wrap {{
+.section-title-wrap {
     display: flex;
     align-items: center;
     gap: 1rem;
-}}
+}
 
-.title-icon-box {{
+.title-icon-box {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -830,37 +1208,37 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     border-radius: 10px;
     color: var(--accent);
     flex-shrink: 0;
-}}
+}
 
-.section-heading {{
-    font-size: 1.65rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
+.section-heading {
+    font-size: 1.85rem;
+    font-weight: 300;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
     margin: 0;
-}}
+}
 
-.section-subtext {{
+.section-subtext {
     font-size: 0.9rem;
     color: var(--text-secondary);
     margin: 0.25rem 0 0;
-}}
+}
 
-.counter-badge {{
+.counter-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 9999px;
     padding: 0.45rem 1rem;
     font-size: 0.84rem;
     font-weight: 600;
     color: var(--text-primary);
-}}
+}
 
 /* ── Explore Left List ────────────────────────────────────────────────────── */
-.decision-card-item {{
+.decision-card-item {
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -868,7 +1246,7 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 1.15rem 1.3rem;
     margin-bottom: 0.85rem;
     text-decoration: none !important;
@@ -878,21 +1256,21 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     width: 100%;
     min-width: 0;
     overflow: visible;
-}}
+}
 
-.decision-card-item:hover {{
+.decision-card-item:hover {
     border-color: var(--border-hover);
     background: var(--surface-hover);
     transform: translateY(-1px);
-}}
+}
 
-.decision-card-item.active {{
+.decision-card-item.active {
     background: var(--accent-muted);
     border: 1px solid var(--accent);
-    box-shadow: 0 0 16px rgba(167, 139, 250, 0.2);
-}}
+    box-shadow: 0 0 20px rgba(139, 111, 214, 0.25);
+}
 
-.card-code-icon {{
+.card-code-icon {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -903,37 +1281,37 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     border-radius: 8px;
     color: var(--accent);
     flex-shrink: 0;
-}}
+}
 
-.card-title-text {{
+.card-title-text {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 0.2rem;
     word-break: break-word;
-}}
+}
 
-.card-sub-text {{
+.card-sub-text {
     font-size: 0.82rem;
     color: var(--text-secondary);
-}}
+}
 
 /* ── Decision Detail Panel ────────────────────────────────────────────────── */
-.detail-panel {{
+.detail-panel {
     background: var(--surface);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 16px;
     padding: 2rem 2.2rem;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
     width: 100%;
     word-break: break-word;
     overflow: visible;
-}}
+}
 
-.detail-top-row {{
+.detail-top-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -941,17 +1319,17 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     gap: 1rem;
     flex-wrap: wrap;
     overflow: visible;
-}}
+}
 
-.detail-entity-wrap {{
+.detail-entity-wrap {
     display: flex;
     align-items: center;
     gap: 1.1rem;
     min-width: 0;
     overflow: visible;
-}}
+}
 
-.detail-code-icon {{
+.detail-code-icon {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -962,24 +1340,24 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     border-radius: 10px;
     color: var(--accent);
     flex-shrink: 0;
-}}
+}
 
-.detail-title {{
+.detail-title {
     font-family: 'JetBrains Mono', monospace;
     font-size: 1.35rem;
     font-weight: 700;
     color: var(--text-primary);
     margin: 0 0 0.25rem;
     word-break: break-word;
-}}
+}
 
-.detail-category {{
+.detail-category {
     font-size: 0.88rem;
     color: var(--text-secondary);
     margin: 0;
-}}
+}
 
-.source-badge {{
+.source-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
@@ -989,23 +1367,24 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     font-weight: 600;
     letter-spacing: 0.02em;
     white-space: nowrap;
-}}
+}
 
-.source-neo4j {{
+.source-neo4j {
     background: var(--accent-muted);
     border: 1px solid var(--accent-border);
     color: var(--accent);
-}}
+}
 
-.source-fallback {{
+.source-fallback {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border);
     color: var(--text-secondary);
-}}
+}
 
-.decision-badge {{
+.decision-badge {
     display: inline-flex;
     align-items: center;
+    gap: 0.35rem;
     padding: 0.35rem 0.85rem;
     background: var(--accent-muted);
     border: 1px solid var(--accent-border);
@@ -1015,30 +1394,30 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     color: var(--accent);
     letter-spacing: 0.02em;
     white-space: nowrap;
-}}
+}
 
-/* ── Stats Grid (Full Visibility, No Cut-Off) ────────────────────────────── */
-.stats-grid {{
+/* ── Stats Grid & Item ────────────────────────────────────────────────────── */
+.stats-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.25rem;
     padding: 1.25rem 1.5rem;
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.015);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     margin-bottom: 1.8rem;
     overflow: visible;
-}}
+}
 
-.stat-item {{
+.stat-item {
     display: flex;
     align-items: center;
     gap: 0.9rem;
     min-width: 0;
     overflow: visible;
-}}
+}
 
-.stat-icon {{
+.stat-icon {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1049,53 +1428,107 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     border-radius: 9px;
     color: var(--accent);
     flex-shrink: 0;
-}}
+}
 
-.stat-meta-label {{
+.stat-meta-label {
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--text-muted);
     margin-bottom: 0.2rem;
     white-space: nowrap;
-}}
+}
 
-.stat-meta-val {{
+.stat-meta-val {
     font-family: 'JetBrains Mono', monospace;
     font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
     word-break: break-word;
-}}
+}
 
-.pill-status-removed {{
+.pill-status-removed {
     display: inline-flex;
     align-items: center;
-    padding: 0.25rem 0.65rem;
+    padding: 0.25rem 0.75rem;
     background: var(--accent-muted);
     border: 1px solid var(--accent-border);
-    border-radius: 6px;
+    border-radius: 9999px;
     color: var(--accent);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-}}
+}
 
-.detail-section-title {{
+/* ── Horizontal Timeline (Deprecated vX -> Removed vY) ─────────────────────── */
+.horizontal-timeline-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 1.4rem;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 1.8rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.timeline-step-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.timeline-circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+}
+
+.timeline-circle-removed {
+    background: #C4B5FD;
+    box-shadow: 0 0 10px #C4B5FD;
+}
+
+.timeline-connector {
+    flex: 1;
+    min-width: 40px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent-border), rgba(255, 255, 255, 0.15));
+}
+
+.timeline-text-lbl {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.timeline-text-ver {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.detail-section-title {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     font-size: 0.98rem;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text-primary);
     margin: 1.6rem 0 0.85rem;
-}}
+}
 
-.rationale-quote-box {{
-    background: rgba(255, 255, 255, 0.025);
-    border-left: 3px solid var(--accent);
-    border-radius: 0 10px 10px 0;
+.rationale-quote-box {
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 3px solid #8B6FD6;
+    border-radius: 0 12px 12px 0;
     padding: 1.25rem 1.5rem;
     font-size: 0.95rem;
     color: var(--text-primary);
@@ -1103,60 +1536,82 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     margin-bottom: 1.8rem;
     word-break: break-word;
     overflow: visible;
-}}
+}
 
-.evidence-btn-group {{
+.evidence-btn-group {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
     overflow: visible;
-}}
+}
 
-.evidence-pill-btn {{
+.evidence-pill-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.55rem;
     background: rgba(255, 255, 255, 0.035);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.6rem 1.1rem;
+    border-radius: 9999px;
+    padding: 0.6rem 1.15rem;
     font-size: 0.84rem;
     font-weight: 500;
-    color: var(--text-primary);
+    color: #C4B5FD !important;
     text-decoration: none !important;
     transition: all 0.15s ease;
     white-space: nowrap;
-}}
+}
 
-.evidence-pill-btn:hover {{
+.evidence-pill-btn:visited {
+    color: #C4B5FD !important;
+}
+
+.evidence-pill-btn:hover {
     background: var(--accent-muted);
     border-color: var(--accent-border);
-    color: #fff;
+    color: #fff !important;
     transform: translateY(-1px);
-}}
+}
+
+.migration-header-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin: 1.8rem 0 0.85rem;
+}
+
+.illustrative-pill {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    padding: 0.2rem 0.6rem;
+    letter-spacing: 0.03em;
+}
 
 /* ── About / Technical Approach ───────────────────────────────────────────── */
-.methodology-card {{
+.methodology-card {
     background: var(--surface);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 16px;
     padding: 1.8rem 2rem;
     height: auto;
     overflow: visible;
-}}
+}
 
-.method-step-row {{
+.method-step-row {
     display: flex;
     align-items: flex-start;
     gap: 1.1rem;
     padding: 0.9rem 0;
     overflow: visible;
-}}
+}
 
-.step-num-pill {{
+.step-num-pill {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1164,169 +1619,182 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
     height: 32px;
     background: var(--accent-muted);
     border: 1px solid var(--accent-border);
-    border-radius: 8px;
+    border-radius: 9999px;
     color: var(--accent);
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.82rem;
     font-weight: 700;
     flex-shrink: 0;
-}}
+}
 
-.step-content {{
+.step-content {
     flex: 1;
     min-width: 0;
     overflow: visible;
-}}
+}
 
-.step-heading {{
+.step-heading {
     display: flex;
     align-items: center;
     gap: 0.55rem;
     font-size: 0.96rem;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text-primary);
     margin: 0 0 0.25rem;
-}}
+}
 
-.step-desc {{
+.step-desc {
     font-size: 0.84rem;
     color: var(--text-secondary);
     line-height: 1.5;
     margin: 0;
     word-break: break-word;
-}}
+}
 
-.step-arrow {{
+.step-arrow {
     text-align: center;
     color: var(--text-muted);
     font-size: 1rem;
     margin: -0.2rem 0;
-}}
+}
 
-.workflow-row {{
+.workflow-row {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
     padding: 0.5rem 0;
     overflow: visible;
-}}
+}
 
-.wf-node {{
+.wf-node {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 0.9rem 1rem;
     min-width: 105px;
     text-align: center;
     transition: all 0.15s ease;
-}}
+}
 
-.wf-node:hover {{
+.wf-node:hover {
     border-color: var(--accent-border);
     background: var(--accent-muted);
-}}
+}
 
-.wf-icon {{
+.wf-icon {
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--accent);
     margin-bottom: 0.4rem;
-}}
+}
 
-.wf-label {{
+.wf-label {
     font-size: 0.84rem;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 0.15rem;
-}}
+}
 
-.wf-sub {{
+.wf-sub {
     font-size: 0.72rem;
     color: var(--text-muted);
-}}
+}
 
-.wf-arrow {{
+.wf-arrow {
     color: var(--text-muted);
     font-size: 1rem;
     flex-shrink: 0;
-}}
+}
 
-.schema-grid {{
+.schema-grid {
     display: grid;
     grid-template-columns: 1fr 1.5fr;
     gap: 2rem;
     align-items: start;
     overflow: visible;
-}}
+}
 
-.legend-item {{
+.legend-item {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0.6rem 0;
     font-size: 0.85rem;
     color: var(--text-secondary);
-}}
+}
 
-.legend-dot {{
+.legend-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: var(--accent);
     flex-shrink: 0;
-}}
+}
 
-.legend-name {{
+.legend-name {
     font-weight: 600;
     color: var(--text-primary);
-}}
+}
 
-.legend-example {{
+.legend-example {
     font-size: 0.76rem;
     color: var(--text-muted);
     margin-left: 0.35rem;
-}}
+}
 
-.graph-canvas {{
+.graph-canvas {
     background: rgba(14, 16, 22, 0.6);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 1.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: visible;
-}}
+}
 
 /* ── Responsive adjustments ──────────────────────────────────────────────── */
-@media (max-width: 960px) {{
-    .block-container {{
+@media (max-width: 960px) {
+    .main .block-container, [data-testid="stAppViewContainer"] .block-container, .block-container {
         padding-left: 4% !important;
         padding-right: 4% !important;
-    }}
-    .feature-grid {{
+    }
+    .feature-grid {
         grid-template-columns: 1fr;
-    }}
-    .hero-title {{
-        font-size: 2.2rem;
-    }}
-    .stats-grid {{
+    }
+    .hero-title {
+        font-size: 2.6rem !important;
+    }
+    .stats-grid {
         grid-template-columns: 1fr;
-    }}
-    .schema-grid {{
+    }
+    .schema-grid {
         grid-template-columns: 1fr;
-    }}
-    .top-navbar {{
-        flex-direction: column;
-        align-items: stretch;
-    }}
-}}
+    }
+    .top-navbar {
+        grid-template-columns: 1fr !important;
+        gap: 0.8rem;
+        text-align: center;
+        height: auto !important;
+        padding: 12px 16px !important;
+        margin: 0 -4.3478% 6px -4.3478% !important;
+    }
+    .hero-container {
+        padding-top: 64px !important;
+    }
+    .brand-container {
+        justify-self: center;
+    }
+    .nav-right-actions {
+        justify-self: center !important;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1334,6 +1802,8 @@ button[kind="primaryFormSubmit"]:hover, button[kind="primary"]:hover {{
 
 cur_page = st.session_state.nav
 
+PROJECT_REPO_URL = ""   # put your own GitHub repo link here (falls back to the Flask repo)
+TEAM_NAME = ""          # put your team name here (hidden when empty)
 is_home = (cur_page == "home")
 is_explore = (cur_page == "explore")
 is_about = (cur_page == "about")
@@ -1358,52 +1828,22 @@ pkg_icon_svg = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" st
     <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
 </svg>"""
 
-right_header_elem = f"""
-<a href="https://github.com/pallets/flask" target="_blank" class="github-btn">
-    {github_svg}
-    <span>GitHub</span>
-    {ext_arrow_svg}
-</a>
+right_header_elem = """
+<div class="nav-right-actions">
+    <a href="https://github.com/pallets/flask" target="_blank" class="nav-signup-btn">GitHub</a>
+</div>
 """
-
-if is_about:
-    right_header_elem = f"""
-    <div style="display:flex; align-items:center; gap:0.6rem;">
-        <span class="step-indicator">v1.0 Architecture</span>
-        {right_header_elem}
-    </div>
-    """
 
 # ── Render Universal Top Navigation Bar ───────────────────────────────────────
 st.markdown(clean_html(f"""
 <div class="top-navbar">
     <a href="?page=home" target="_self" class="brand-container">
-        <span class="brand-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-            </svg>
-        </span>
         <span class="brand-title">Why The Code Is Like This</span>
     </a>
     <div class="nav-pill-group">
-        <a href="?page=home" target="_self" class="nav-link {'active' if is_home else ''}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
-            <span>Home</span>
-        </a>
-        <a href="?page=explore" target="_self" class="nav-link {'active' if is_explore else ''}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-            </svg>
-            <span>Explore Decisions</span>
-        </a>
-        <a href="?page=about" target="_self" class="nav-link {'active' if is_about else ''}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
-            </svg>
-            <span>About</span>
-        </a>
+        <a href="?page=home" target="_self" class="nav-link {'active' if is_home else ''}">Home</a>
+        <a href="?page=explore" target="_self" class="nav-link {'active' if is_explore else ''}">Explore Decisions</a>
+        <a href="?page=about" target="_self" class="nav-link {'active' if is_about else ''}">About</a>
     </div>
     {right_header_elem}
 </div>
@@ -1416,55 +1856,122 @@ st.markdown(clean_html(f"""
 
 if is_home:
 
-    # Hero Content
+    # Hero panel (same look as the reference): thin 1px outline + rounded corners, black half-sphere at the top,
+    # muted violet -> lavender -> white at the outer corners, 60px grid that only shows on the purple.
+    # Colours below were sampled from the reference screenshot (no blue-ish tones).
     st.markdown(clean_html("""
-    <div class="hero-container">
-        <div class="hero-badge">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-            </svg>
-            <span>Code Decision Intelligence</span>
-        </div>
-        <h1 class="hero-title">Why The <span class="hero-title-accent">Code</span> Is Like This.</h1>
-        <div class="hero-subtitle">Understand the decisions behind your codebase.</div>
-        <p class="hero-desc">
-            Explore why specific methods and functions were deprecated or removed, backed by
-            verified version history, original maintainer rationale, and primary source evidence.
-        </p>
-    </div>
+    <style>
+    /* Streamlit wraps the panel and caps it at 100% width; widen the wrapper so the panel runs edge to edge */
+    [data-testid="stLayoutWrapper"]:has(> .st-key-hero_panel) {
+        width: 111.1111% !important;
+        max-width: none !important;
+        margin-left: -5.5556% !important;
+        margin-bottom: 28px !important;
+    }
+    .st-key-hero_panel {
+        position: relative !important;
+        width: 100% !important;
+        max-width: none !important;
+        padding: 0 0 106px !important;
+        gap: 0 !important;
+        border: 1px solid rgba(255, 255, 255, 0.09) !important;
+        border-radius: 40px !important;
+        overflow: hidden !important;
+        background-origin: border-box !important;
+        background-repeat: repeat, repeat, no-repeat, no-repeat !important;
+        background:
+            linear-gradient(to right, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+            radial-gradient(ellipse 82% 107% at 50% 0%,
+                #0D0B12 0%,
+                #0D0B12 52%,
+                #14101F 58%,
+                #1E1630 62.7%,
+                #382760 66.6%,
+                #4E3588 71%,
+                #745CB4 76.4%,
+                #9381CE 82.5%,
+                #AEA1DB 89%,
+                #D2CDE8 96%,
+                #FFFFFF 100%
+            ),
+            #0D0B12 !important;
+        background-size: 60px 60px, 60px 60px, 100% 100%, 100% 100% !important;
+        background-origin: border-box !important;
+        background-repeat: repeat, repeat, no-repeat, no-repeat !important;
+        background-blend-mode: overlay, overlay, normal, normal !important;
+    }
+    @media (max-width: 960px) {
+        [data-testid="stLayoutWrapper"]:has(> .st-key-hero_panel) {
+            width: 108.6957% !important;
+            margin-left: -4.3478% !important;
+        }
+        .st-key-hero_panel {
+            padding-bottom: 64px !important;
+            border-radius: 28px !important;
+        }
+    }
+    </style>
     """), unsafe_allow_html=True)
 
-    # Search Bar Form
-    with st.form("home_search_form", clear_on_submit=False):
-        col_inp, col_btn = st.columns([5, 1.2], gap="small")
-        with col_inp:
-            query_val = st.text_input(
-                "Search",
-                placeholder="Search a code symbol, method, or deprecation...",
-                value=st.session_state.search_query,
-                label_visibility="collapsed",
-            )
-        with col_btn:
-            submitted = st.form_submit_button("Search  →", type="primary", use_container_width=True)
+    with st.container(key="hero_panel"):
+        # Hero Content (Sitting inside black / dark purple zone)
+        st.markdown(clean_html("""
+        <div class="hero-container" style="padding-bottom: 1.2rem;">
+            <div class="hero-nodes-row">
+                <!-- 1. Code Investigation (double size, white logo, white boundary, black inside, no glow) -->
+                <div class="hero-glass-node hero-node-small hero-node-left" title="Code Investigation">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        <polyline points="9.5 9 7.5 11 9.5 13"></polyline>
+                        <polyline points="12.5 9 14.5 11 12.5 13"></polyline>
+                    </svg>
+                </div>
+                <div class="hero-connector-line hero-line-left"></div>
+                <!-- 2. Decision History (center, prominent, double size, white logo, white boundary, black inside) -->
+                <div class="hero-glass-node hero-node-center" title="Decision History">
+                    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="7" cy="17" r="2.5"></circle>
+                        <circle cx="17" cy="9" r="2.5"></circle>
+                        <line x1="7" y1="5" x2="7" y2="14.5"></line>
+                        <path d="M7 17c3.5 0 6.5-1 7.5-5"></path>
+                    </svg>
+                </div>
+                <div class="hero-connector-line hero-line-right"></div>
+                <!-- 3. Verified Evidence (no glow, same style as others) -->
+                <div class="hero-glass-node hero-node-small hero-node-right" title="Verified Evidence">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <polyline points="9 12 11 14 15 10"></polyline>
+                    </svg>
+                </div>
+            </div>
+            <h1 class="hero-title">
+                Why The Code<br>
+                <span class="hero-title-gradient">Is Like This</span>
+            </h1>
+            <p class="hero-subtitle">
+                Understand the architectural rationale, deprecation milestones, and official source evidence behind code changes.
+            </p>
+        </div>
+        """), unsafe_allow_html=True)
+
+        # Search Bar Form (White bar with black text, matching height search button)
+        with st.form("home_search_form", clear_on_submit=False):
+            col_inp, col_btn = st.columns([5, 1.2], gap="small")
+            with col_inp:
+                query_val = st.text_input(
+                    "Search",
+                    placeholder="Search a code symbol, method, or deprecation...",
+                    value=st.session_state.search_query,
+                    label_visibility="collapsed",
+                )
+            with col_btn:
+                submitted = st.form_submit_button("Search", type="primary", use_container_width=True)
 
     if submitted and query_val:
         st.session_state.search_query = query_val
-
-    # Interactive Try Searching Chips (Lucide SVG, No emojis)
-    st.markdown(clean_html(f"""
-    <div class="chips-row">
-        <span>Try searching:</span>
-        <a href="?page=home&q=app.before_first_request" target="_self" class="chip-btn">
-            {code_icon_svg} app.before_first_request
-        </a>
-        <a href="?page=home&q=got_first_request" target="_self" class="chip-btn">
-            {code_icon_svg} got_first_request
-        </a>
-        <a href="?page=home&q=test_client.as_tuple" target="_self" class="chip-btn">
-            {code_icon_svg} test_client.as_tuple
-        </a>
-    </div>
-    """), unsafe_allow_html=True)
 
     # Check chip query param
     if "q" in query_params:
@@ -1504,6 +2011,7 @@ if is_home:
                             </div>
                         </div>
                         <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                            <span class="pill-status-removed">{matched.get('status', 'removed')}</span>
                             {src_badge_html}
                             <a href="?page=explore&decision={matched['entity']}" target="_self" class="decision-badge">
                                 <span>Explorer</span>
@@ -1512,14 +2020,31 @@ if is_home:
                         </div>
                     </div>
                     {db_note_html}
+                    <div class="horizontal-timeline-bar">
+                        <div class="timeline-step-item">
+                            <div class="timeline-circle"></div>
+                            <div>
+                                <div class="timeline-text-lbl">Deprecated</div>
+                                <div class="timeline-text-ver">{matched['dep_version']}</div>
+                            </div>
+                        </div>
+                        <div class="timeline-connector"></div>
+                        <div class="timeline-step-item">
+                            <div class="timeline-circle timeline-circle-removed"></div>
+                            <div>
+                                <div class="timeline-text-lbl">Removed</div>
+                                <div class="timeline-text-ver">{matched['rem_version']}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detail-section-title">
+                        <span>Why was it removed?</span>
+                    </div>
                     <div class="rationale-quote-box">
                         {matched['rationale']}
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
-                        <span style="font-size:0.86rem; color:var(--text-secondary);">
-                            Deprecated in <strong style="color:var(--accent);">{matched['dep_version']}</strong> · 
-                            Removed in <strong style="color:var(--text-primary);">{matched['rem_version']}</strong>
-                        </span>
+                        <span class="detail-section-title" style="margin:0;">Evidence</span>
                         <div class="evidence-btn-group">
                             {ev_buttons}
                         </div>
@@ -1533,14 +2058,14 @@ if is_home:
                     render_migration_and_timeline(matched)
         else:
             st.markdown(clean_html("""
-            <div style="text-align: center; margin: 2rem auto 3rem; color: var(--text-secondary);">
+            <div style="text-align: center; margin: 2rem auto 3rem; padding: 2.2rem 1.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;">
                 <div style="display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; background:var(--accent-muted); border:1px solid var(--accent-border); border-radius:12px; color:var(--accent); margin-bottom:0.75rem;">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                     </svg>
                 </div>
-                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">No verified decision record found</div>
-                <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">
+                <div style="font-size: 1.15rem; font-weight: 600; color: var(--text-primary);">No verified evidence found.</div>
+                <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.35rem;">
                     This system refuses to generate unverified explanations. Try searching for <code>before_first_request</code>, <code>got_first_request</code>, or <code>test_client.as_tuple</code>.
                 </div>
             </div>
@@ -1552,38 +2077,159 @@ if is_home:
         <div class="feature-card">
             <div class="feature-icon-box">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="4"/><line x1="1.05" y1="12" x2="7" y2="12"/><line x1="17.01" y1="12" x2="22.96" y2="12"/>
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <polyline points="9.5 9 7.5 11 9.5 13"></polyline>
+                    <polyline points="12.5 9 14.5 11 12.5 13"></polyline>
                 </svg>
             </div>
             <div>
-                <h3 class="feature-title">Version History</h3>
-                <p class="feature-desc">Track precise deprecation milestones, removal releases, and commit timeline history.</p>
+                <h3 class="feature-title">Code Investigation</h3>
+                <p class="feature-desc">Find the original reason behind deprecated code.</p>
             </div>
         </div>
         <div class="feature-card">
             <div class="feature-icon-box">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    <circle cx="7" cy="17" r="2.5"></circle>
+                    <circle cx="17" cy="9" r="2.5"></circle>
+                    <line x1="7" y1="5" x2="7" y2="14.5"></line>
+                    <path d="M7 17c3.5 0 6.5-1 7.5-5"></path>
                 </svg>
             </div>
             <div>
-                <h3 class="feature-title">Evidence-Backed</h3>
-                <p class="feature-desc">Direct citations and links to primary GitHub issues, maintainer pull requests, and changelogs.</p>
+                <h3 class="feature-title">Decision History</h3>
+                <p class="feature-desc">Connect GitHub Issues, PRs and version changes.</p>
             </div>
         </div>
         <div class="feature-card">
             <div class="feature-icon-box">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <polyline points="9 12 11 14 15 10"></polyline>
                 </svg>
             </div>
             <div>
-                <h3 class="feature-title">Developer Context</h3>
-                <p class="feature-desc">Understand original architectural reasoning and migration pathways without hallucinated explanations.</p>
+                <h3 class="feature-title">Verified Evidence</h3>
+                <p class="feature-desc">Show source-backed explanations, not invented answers.</p>
             </div>
         </div>
+    </div>
+    """), unsafe_allow_html=True)
+
+    # ═══ Home content sections (stacked, glassmorphism). Data pulled from CURATED_DATA, never hardcoded. ═══
+    _ex = CURATED_DATA.get("app.before_first_request") or next(iter(CURATED_DATA.values()))
+    _ex_ent = _ex["entity"]
+    _ex_short = _ex_ent.split(".")[-1]
+    _n_dec = len(CURATED_DATA)
+    _ex_ev = _ex.get("evidence", [])
+    _ex_url = _ex_ev[0]["url"] if _ex_ev else ""
+    _ev_ev = next((e for e in _ex.get("events", []) if e["type"] == "deprecated"), None)
+    _rm_ev = next((e for e in _ex.get("events", []) if e["type"] == "removed"), None)
+    _repo_url = PROJECT_REPO_URL or "https://github.com/pallets/flask"
+
+    st.markdown(clean_html(f"""
+    <div class="home-section">
+        <div class="sec-head"><span class="sec-pill">THE PROBLEM</span><h2 class="sec-title">The error tells you what broke. Not why.</h2><p class="sec-sub">After an upgrade, developers see a failure but the reasoning behind the change is scattered across docs, changelogs, Issues and pull requests.</p></div>
+        <div class="code-win"><div class="code-win-bar"><i></i><i></i><i></i><span>terminal</span></div>
+<pre><span class="err">AttributeError:</span> 'Flask' object has no attribute '<span class="kw">{_ex_short}</span>'</pre></div>
+        <div class="glass-box" style="display:flex;flex-direction:column;gap:.9rem;">
+            <div class="q-line">Why was it removed?</div>
+            <div class="q-line">Which version deprecated it, and which removed it?</div>
+            <div class="q-line">Who proposed it, and what did maintainers say?</div>
+            <div class="q-line">What should I use instead?</div>
+        </div>
+        <div class="closing-line">Today that means opening five tabs. We put the answer in one place.</div>
+    </div>
+
+    <div class="home-section">
+        <div class="sec-head"><span class="sec-pill">HOW IT WORKS</span><h2 class="sec-title">Three steps. Every answer traceable.</h2></div>
+        <div class="glass-box"><span class="step-tag">STEP 01</span><h4>Search an API</h4><p>Type a method or symbol, like <span class="mono-chip">{_ex_ent}</span>. Aliases are recognised.</p></div>
+        <div class="flow-link"></div>
+        <div class="glass-box"><span class="step-tag">STEP 02</span><h4>See the evidence chain</h4><p>Deprecated version, removal version, the maintainers' reasoning, and links to the original Issue and PR.</p></div>
+        <div class="flow-link"></div>
+        <div class="glass-box"><span class="step-tag">STEP 03</span><h4>Migrate with context</h4><p>Sourced migration guidance, with clearly labelled illustrative Before / After code.</p></div>
+    </div>
+
+    <div class="home-section">
+        <div class="sec-head"><span class="sec-pill">UNDER THE HOOD</span><h2 class="sec-title">A graph, not a pile of links.</h2></div>
+        <div class="glass-box">
+            <p style="margin-bottom:1.2rem !important;">Decisions, change events and evidence are stored as connected nodes in Neo4j, so one query returns the complete story.</p>
+            <ul class="check-list">
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Decision → ChangeEvent <span class="mono-chip">(HAS_EVENT)</span></span></li>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Decision → Evidence <span class="mono-chip">(SUPPORTED_BY)</span></span></li>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Verified quotes from original GitHub records</span></li>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Source label on every answer: Neo4j or Local fallback</span></li>
+            </ul>
+        </div>
+        <div class="code-win"><div class="code-win-bar"><i></i><i></i><i></i><span>query.cypher</span></div>
+<pre><span class="kw">MATCH</span> (d:Decision {{entity: <span class="str">'{_ex_ent}'</span>}})-[:HAS_EVENT]-&gt;(e:ChangeEvent)
+<span class="kw">OPTIONAL MATCH</span> (d)-[:SUPPORTED_BY]-&gt;(ev:Evidence)
+<span class="kw">RETURN</span> d.entity, e.type, e.version, ev.url</pre></div>
+    </div>
+
+    <div class="home-section">
+        <div class="sec-head"><span class="sec-pill">WHO IT'S FOR</span><h2 class="sec-title">Built for people who inherit code.</h2></div>
+        <div class="glass-box"><div class="glass-row"><div class="glass-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div><div><h4>Developers upgrading dependencies</h4><p>Understand a breaking change before you rewrite code.</p></div></div></div>
+<div class="glass-box"><div class="glass-row"><div class="glass-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg></div><div><h4>Open-source contributors</h4><p>Learn why a project works the way it does, from primary sources.</p></div></div></div>
+<div class="glass-box"><div class="glass-row"><div class="glass-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div><div><h4>Tech leads and reviewers</h4><p>Justify an upgrade or a migration plan with real evidence.</p></div></div></div>
+<div class="glass-box"><div class="glass-row"><div class="glass-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg></div><div><h4>Students and new hires</h4><p>Onboard faster by reading the reasoning behind the code.</p></div></div></div>
+    </div>
+
+    <div class="home-section">
+        <div class="sec-head"><span class="sec-pill">TRUST BY DESIGN</span><h2 class="sec-title">No evidence, no answer.</h2><p class="sec-sub">This system does not generate explanations. It retrieves them.</p></div>
+        <div class="glass-box"><div class="glass-row"><div class="glass-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div><h4>Primary sources only</h4><p>Every reason comes from a GitHub Issue, pull request or changelog.</p></div></div></div>
+<div class="glass-box"><div class="glass-row"><div class="glass-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div><h4>Verified quotes</h4><p>Stored quotes are checked against the original record.</p></div></div></div>
+<div class="glass-box"><div class="glass-row"><div class="glass-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div><h4>Honest fallbacks</h4><p>If a record is missing, the app says so instead of guessing.</p></div></div></div>
+        <div class="note-muted">Current prototype: {_n_dec} curated Flask decisions. The discovery pipeline below shows how it scales.</div>
+    </div>
+
+    <div class="home-section">
+        <div class="sec-head"><span class="sec-pill">ROADMAP</span><h2 class="sec-title">From {_n_dec} decisions to any repository.</h2></div>
+        <div class="glass-box road-step"><div class="glass-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 0-3.16 19.5c.5.1.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.15-1.1-1.46-1.1-1.46-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.9.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.9-1.29 2.74-1.02 2.74-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg></div><span class="road-tag">STEP 01</span><h4>GitHub API</h4></div>
+<div class="flow-link"></div>
+<div class="glass-box road-step"><div class="glass-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></div><span class="road-tag">STEP 02</span><h4>Filter deprecations</h4></div>
+<div class="flow-link"></div>
+<div class="glass-box road-step"><div class="glass-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="12" r="3"/><line x1="9" y1="12" x2="15" y2="12"/></svg></div><span class="road-tag">STEP 03</span><h4>Link Issue to PR</h4></div>
+<div class="flow-link"></div>
+<div class="glass-box road-step"><div class="glass-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div><span class="road-tag">STEP 04</span><h4>Verify and load to Neo4j</h4></div>
+        <div class="note-muted">Planned. Not part of the current prototype.</div>
+    </div>
+
+    <div class="home-section" style="margin-bottom:0;">
+        <div class="sec-head"><span class="sec-pill">FAQ</span><h2 class="sec-title">Questions, answered.</h2></div>
+    </div>
+    """), unsafe_allow_html=True)
+
+    with st.container(key="faq_block"):
+        with st.expander("Does it use AI to write the reasons?"):
+            st.write("No. Every explanation comes from original GitHub records. An LLM could later help summarise long discussions, but only with citations back to the source.")
+        with st.expander("Which libraries are covered?"):
+            st.write(f"The prototype covers {_n_dec} Flask decisions. The architecture is built to add more repositories.")
+        with st.expander("Where does the data come from?"):
+            st.write("Public GitHub Issues and pull requests, plus official changelogs.")
+        with st.expander("What if my API is not in the database?"):
+            st.write('You will see "No verified evidence found." We never invent an answer.')
+        with st.expander("Why Neo4j?"):
+            st.write("Decisions, events and evidence are connected, and a graph returns that connected history in one query.")
+
+    _team_li = f"<span>{TEAM_NAME}</span>" if TEAM_NAME else ""
+    st.markdown(clean_html(f"""
+    <div class="cta-panel">
+        <h2>Find the reason.<br>Fix your code.</h2>
+        <div class="cta-btns">
+            <a class="cta-btn-white" href="?page=explore" target="_self">Try the Explorer</a>
+            <a class="cta-btn-glass" href="{_repo_url}" target="_blank" rel="noopener">View on GitHub</a>
+        </div>
+    </div>
+    <div class="home-footer">
+        <div class="foot-group"><span class="foot-title">Product</span>
+            <div class="foot-links"><a href="?page=home" target="_self">Home</a><a href="?page=explore" target="_self">Explore Decisions</a><a href="?page=about" target="_self">About</a></div></div>
+        <div class="foot-group"><span class="foot-title">Resources</span>
+            <div class="foot-links"><a href="{_repo_url}" target="_blank" rel="noopener">GitHub repository</a><a href="https://github.com/pallets/flask" target="_blank" rel="noopener">Flask repository</a></div></div>
+        <div class="foot-group"><span class="foot-title">Project</span>
+            <div class="foot-links">{_team_li}<span>hackFront India submission</span></div></div>
+        <div class="foot-built">Built with Python, Streamlit and Neo4j AuraDB.</div>
     </div>
     """), unsafe_allow_html=True)
 
@@ -1593,6 +2239,9 @@ if is_home:
 # ══════════════════════════════════════════════════════════════════════════════
 
 elif is_explore:
+
+    # Spacing below navbar before content begins
+    st.markdown('<div style="height: 1.8rem;"></div>', unsafe_allow_html=True)
 
     # Header Row
     st.markdown(clean_html("""
@@ -1681,6 +2330,7 @@ elif is_explore:
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                    <span class="pill-status-removed">{decision_data.get('status', 'removed')}</span>
                     {src_badge_html}
                     <div class="decision-badge">Verified Decision</div>
                 </div>
@@ -1727,7 +2377,7 @@ elif is_explore:
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
-                <span>Verified Rationale</span>
+                <span>Why was it removed?</span>
             </div>
             <div class="rationale-quote-box">
                 {decision_data['rationale']}
@@ -1755,6 +2405,9 @@ elif is_explore:
 # ══════════════════════════════════════════════════════════════════════════════
 
 elif is_about:
+
+    # Spacing below navbar before content begins
+    st.markdown('<div style="height: 1.8rem;"></div>', unsafe_allow_html=True)
 
     # Header Row
     st.markdown(clean_html("""
@@ -2042,3 +2695,35 @@ elif is_about:
             </div>
         </div>
         """), unsafe_allow_html=True)
+
+    # ═══ About extras (stacked, glass) ═══
+    _n_dec = len(CURATED_DATA)
+    st.markdown(clean_html(f"""
+    <div class="home-section" style="margin-top:4.5rem;">
+        <div class="sec-head"><span class="sec-pill">OUR STORY</span><h2 class="sec-title">Why this project exists</h2></div>
+        <div class="glass-box"><h4>The problem we picked</h4><p>When an API is deprecated or removed, the error only tells you what broke. The reasoning is spread across changelogs, GitHub Issues, pull requests and code diffs, so developers rebuild the story by hand every time.</p></div>
+        <div class="glass-box"><h4>What we built</h4><p>A small explorer that connects a decision, its change events and its evidence in one graph. Search an API, see when it was deprecated and removed, read the maintainers' reasoning, and open the original sources.</p></div>
+        <div class="glass-box"><h4>Where the data comes from</h4><p>Only primary sources: public GitHub Issues and pull requests of the Flask repository, plus official changelogs. The prototype currently holds {_n_dec} curated decisions, each with verified quotes.</p></div>
+    </div>
+
+    <div class="home-section">
+        <div class="sec-head"><span class="sec-pill">PRINCIPLES</span><h2 class="sec-title">How we keep it honest</h2></div>
+        <div class="glass-box"><span class="step-tag">PRINCIPLE 01</span><h4>No evidence, no answer</h4><p>If a record is missing, the app says "No verified evidence found." instead of guessing.</p></div>
+        <div class="glass-box"><span class="step-tag">PRINCIPLE 02</span><h4>Every answer shows its source</h4><p>Each result is labelled Source: Neo4j or Source: Local fallback, so you always know where it came from.</p></div>
+        <div class="glass-box"><span class="step-tag">PRINCIPLE 03</span><h4>Illustrative code is labelled</h4><p>Before / After migration snippets are marked as illustrative. Reasons and versions are never invented.</p></div>
+    </div>
+
+    <div class="home-section">
+        <div class="sec-head"><span class="sec-pill">THE STACK</span><h2 class="sec-title">What it runs on</h2></div>
+        <div class="glass-box"><h4>Python and Streamlit</h4><p>The interface and the lookup logic. Light, fast to deploy, easy for a small team to maintain.</p></div>
+        <div class="glass-box"><h4>Neo4j AuraDB</h4><p>A graph database that stores decisions, change events and evidence as connected nodes, so one Cypher query returns the whole story.</p></div>
+        <div class="glass-box"><h4>GitHub API</h4><p>Used to collect the original Issues and pull requests that justify each decision.</p></div>
+    </div>
+
+    <div class="home-section">
+        <div class="sec-head"><span class="sec-pill">WHAT'S NEXT</span><h2 class="sec-title">Where this goes from here</h2></div>
+        <div class="glass-box"><span class="step-tag">PHASE 1 · NOW</span><h4>Curated prototype</h4><p>{_n_dec} verified Flask decisions, a Neo4j graph and a Streamlit explorer.</p></div>
+        <div class="glass-box"><span class="step-tag">PHASE 2 · NEXT</span><h4>Automated discovery</h4><p>Planned: pull deprecations from GitHub, link each Issue to its PR, verify quotes, then load them into Neo4j.</p></div>
+        <div class="glass-box"><span class="step-tag">PHASE 3 · LATER</span><h4>Beyond one repository</h4><p>Planned: more libraries, and hints inside developer tools when a deprecation warning appears. Phases 2 and 3 are plans, not shipped features.</p></div>
+    </div>
+    """), unsafe_allow_html=True)
