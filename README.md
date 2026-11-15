@@ -20,7 +20,19 @@ This makes historical code decisions difficult to understand and verify.
 - Original GitHub issue or pull request.
 - Historical change timeline.
 
-The system avoids generating unsupported explanations. If it cannot find a matching verified decision, it returns a refusal instead.
+The system follows an evidence-first approach and avoids generating unsupported explanations. If it cannot find a matching verified decision, it returns a refusal instead.
+
+## Current Prototype: 3 Verified Flask Decisions
+
+The current prototype covers three manually curated and evidence-verified Flask decisions:
+
+1. `app.before_first_request`
+2. `got_first_request`
+3. `test_client.as_tuple`
+
+Each decision includes its deprecation and removal history, verified rationale, and supporting GitHub evidence.
+
+**Evidence-Based Refusal:** When users search for unsupported APIs or decisions without sufficient verified evidence, the system refuses to generate an unsupported explanation. This ensures that answers remain traceable to original sources rather than relying on guesses.
 
 ## Architecture
 
@@ -57,7 +69,7 @@ flowchart TD
 2. Python backend searches matching entities in Neo4j.
 3. The application retrieves associated change events and evidence.
 4. It displays the rationale, source link, and version history.
-5. If no matching verified decision exists, the application refuses to invent an explanation.
+5. If no matching verified decision exists or sufficient evidence is unavailable, the application refuses to invent an explanation.
 
 ## Current Dataset
 
@@ -83,7 +95,9 @@ The system links answers to their original GitHub evidence rather than presentin
 
 The system follows an evidence-first approach.
 
-When a user asks about an unsupported entity or a decision without matching evidence, the application returns a refusal instead of generating a potentially misleading explanation.
+When a user asks about an unsupported entity or a decision without sufficient matching verified evidence, the application returns a refusal instead of generating a potentially misleading explanation.
+
+This keeps explanations traceable to available source evidence.
 
 ## Evaluation
 
@@ -129,12 +143,16 @@ WhyTheCodeIsLikeThis/
 ├── test_https.py
 ├── check_tls.py
 ├── requirements.txt
+├── assets/
 ├── data/
-├── .env
+├── .streamlit/
+├── .gitignore
 └── README.md
 ```
 
-The `.env`, virtual environment, and cloned Flask source repository are excluded from version control.
+The `data/` directory contains 7 fetched Flask cases, of which 3 are currently curated and included in the prototype.
+
+The `.env` file, virtual environment, and cloned Flask source repository are excluded from version control.
 
 ## Setup Instructions
 
@@ -172,17 +190,30 @@ NEO4J_HTTP_URL=your_neo4j_https_endpoint
 NEO4J_USERNAME=your_username
 NEO4J_PASSWORD=your_password
 NEO4J_DATABASE=your_database_name
+
+# Optional: used only by test_connection.py and check_tls.py
+NEO4J_URI=neo4j+s://your_neo4j_uri
 ```
+
+`NEO4J_HTTP_URL` is used by the application and data loader.
+
+`NEO4J_URI` is optional and is used only by the connection and TLS diagnostic scripts.
 
 Never commit `.env` or share your credentials.
 
-### 5. Load decisions into Neo4j
+### 5. Verify evidence quotes
+
+```bash
+python verify_quotes.py
+```
+
+### 6. Load decisions into Neo4j
 
 ```bash
 python load_neo4j.py
 ```
 
-### 6. Launch the application
+### 7. Launch the application
 
 ```bash
 streamlit run app.py
@@ -200,5 +231,4 @@ Add the following screenshots:
 ---
 
 **Project:** Why The Code Is Like This  
-**Category:** AI and Developer Tools  
-**Track:** Neo4j
+**Category:** AI and Developer Tools

@@ -1,3 +1,4 @@
+
 import os
 import json
 import requests
@@ -11,7 +12,14 @@ USER = os.getenv("NEO4J_USERNAME")
 PASSWORD = os.getenv("NEO4J_PASSWORD")
 DATABASE = os.getenv("NEO4J_DATABASE")
 
-ENDPOINT = f"{URL}/db/{DATABASE}/query/v2"
+# Check required Neo4j configuration
+if not all([URL, USER, PASSWORD, DATABASE]):
+    raise ValueError(
+        "Missing Neo4j configuration. Check NEO4J_HTTP_URL, "
+        "NEO4J_USERNAME, NEO4J_PASSWORD and NEO4J_DATABASE in .env"
+    )
+
+ENDPOINT = f"{URL.rstrip('/')}/db/{DATABASE}/query/v2"
 
 # Verified source URLs
 SOURCE_URLS = {
@@ -22,6 +30,7 @@ SOURCE_URLS = {
     4341: "https://github.com/pallets/flask/pull/4341",
     4417: "https://github.com/pallets/flask/pull/4417",
 }
+
 
 def run_query(statement, parameters):
     response = requests.post(
@@ -34,7 +43,7 @@ def run_query(statement, parameters):
         timeout=30
     )
 
-    if response.status_code != 202:
+    if response.status_code not in (200, 202):
         raise Exception(
             f"HTTP {response.status_code}: {response.text}"
         )
@@ -47,11 +56,16 @@ def run_query(statement, parameters):
     return result
 
 
+# Load decisions from JSON
 with open("decisions.json", encoding="utf-8") as f:
     decisions = json.load(f)
 
+
 for decision in decisions:
+
+    # Attach verified source URLs to change events
     events_with_urls = []
+
     for ev in decision.get("events", []):
         ev_copy = dict(ev)
         ev_copy["url"] = SOURCE_URLS.get(ev.get("ref"), "")
@@ -64,15 +78,19 @@ for decision in decisions:
         "events": events_with_urls
     }
 
+    # Create or update Decision and ChangeEvent nodes
     query = """
     MERGE (d:Decision {entity: $entity})
     SET d.aliases = $aliases,
         d.status = $status
     WITH d
     UNWIND $events AS ev
-    MERGE (e:ChangeEvent {ref: ev.ref})
-    SET e.type = ev.type,
-        e.version = ev.version,
+    MERGE (e:ChangeEvent {
+        entity: $entity,
+        ref: ev.ref,
+        type: ev.type
+    })
+    SET e.version = ev.version,
         e.merged_at = ev.merged_at,
         e.url = ev.url
     MERGE (d)-[:HAS_EVENT]->(e)
@@ -87,8 +105,15 @@ for decision in decisions:
 
     # Load all verified references as evidence
     for ev in decision.get("events", []):
+
         ref = ev["ref"]
-        quote = rationale["quote"] if (rationale and ref == rationale_ref) else ""
+
+        quote = (
+            rationale["quote"]
+            if rationale and ref == rationale_ref
+            else ""
+        )
+
         url = SOURCE_URLS.get(ref, "")
 
         evidence_query = """
@@ -98,18 +123,25 @@ for decision in decisions:
             ref: $ref
         })
         SET e.url = $url,
-            e.quote = CASE WHEN $quote <> '' THEN $quote ELSE coalesce(e.quote, '') END
+            e.quote = CASE
+                WHEN $quote <> '' THEN $quote
+                ELSE coalesce(e.quote, '')
+            END
         MERGE (d)-[:SUPPORTED_BY]->(e)
         RETURN e.ref AS ref
         """
 
-        run_query(evidence_query, {
-            "entity": decision["entity"],
-            "ref": ref,
-            "quote": quote,
-            "url": url
-        })
+        run_query(
+            evidence_query,
+            {
+                "entity": decision["entity"],
+                "ref": ref,
+                "quote": quote,
+                "url": url
+            }
+        )
 
     print("Loaded:", decision["entity"])
+
 
 print("\nAll decisions processed successfully!")

@@ -35,7 +35,8 @@
       {
         "type": "deprecated",
         "ref": 4997,
-        "version": "2.3.0"
+        "version": "2.3.0",
+        "merged_at": "2023-02-23T17:34:18Z"
       },
       {
         "type": "removed",

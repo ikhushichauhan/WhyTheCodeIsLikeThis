@@ -1,6 +1,5 @@
 import os
 import base64
-import textwrap
 import requests
 from PIL import Image
 import streamlit as st
@@ -41,37 +40,17 @@ def clean_html(html_str: str) -> str:
     """
     return "\n".join(line.strip() for line in html_str.splitlines() if line.strip())
 
-bg_b64 = get_asset_b64(BG_PATH)
-favicon_b64 = get_asset_b64(FAVICON_PATH)
-logo_b64 = get_asset_b64(LOGO_PATH)
 
-# Guarantee Favicon and Page Title in browser tab via JS
-if favicon_b64:
-    st.markdown(f"""
-    <script>
-        document.title = "Rationale";
-        function setFavicon() {{
-            try {{
-                let link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-                link.type = 'image/png';
-                link.rel = 'shortcut icon';
-                link.href = 'data:image/png;base64,{favicon_b64}';
-                document.getElementsByTagName('head')[0].appendChild(link);
-                
-                if (window.parent && window.parent.document) {{
-                    window.parent.document.title = "Rationale";
-                    let pLink = window.parent.document.querySelector("link[rel*='icon']") || window.parent.document.createElement('link');
-                    pLink.type = 'image/png';
-                    pLink.rel = 'shortcut icon';
-                    pLink.href = 'data:image/png;base64,{favicon_b64}';
-                    window.parent.document.getElementsByTagName('head')[0].appendChild(pLink);
-                }}
-            }} catch(e) {{}}
-        }}
-        setFavicon();
-        setTimeout(setFavicon, 500);
-    </script>
-    """, unsafe_allow_html=True)
+def status_badge_class(status) -> str:
+    """Return a safe, status-specific CSS class for decision badges."""
+    normalized = str(status or "unknown").strip().lower().replace(" ", "-")
+    allowed_statuses = {"removed", "deprecated", "active", "retained", "unknown"}
+    if normalized not in allowed_statuses:
+        normalized = "unknown"
+    return f"pill-status pill-status-{normalized}"
+
+bg_b64 = get_asset_b64(BG_PATH)
+logo_b64 = get_asset_b64(LOGO_PATH)
 
 # ── Neo4j Config ─────────────────────────────────────────────────────────────
 
@@ -264,10 +243,12 @@ def query_neo4j_decision(question):
 
     entity, status, aliases, events, evidence = rows[0]
 
-    dep_v = "v2.2.0"
-    rem_v = "v2.3.0"
+    dep_v = "Unknown"
+    rem_v = "Unknown"
     for ev in events:
-        v_str = str(ev.get("version", ""))
+        v_str = str(ev.get("version") or "").strip()
+        if not v_str:
+            continue
         v_fmt = v_str if v_str.startswith("v") else f"v{v_str}"
         if ev.get("type") == "deprecated":
             dep_v = v_fmt
@@ -347,8 +328,7 @@ def find_decision(question):
         if key_matches:
             result = dict(val)
             result["source"] = "Local fallback"
-            if neo_error:
-                result["db_note"] = neo_error
+            result["db_note"] = neo_error or "Neo4j returned no matching record; showing bundled data."
             return result
 
     return None
@@ -1467,18 +1447,41 @@ button[kind="secondary"] {
     word-break: break-word;
 }
 
-.pill-status-removed {
+.pill-status {
     display: inline-flex;
     align-items: center;
     padding: 0.25rem 0.75rem;
-    background: var(--accent-muted);
     border: 1px solid var(--accent-border);
     border-radius: 9999px;
-    color: var(--accent);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+}
+
+.pill-status-removed {
+    background: var(--accent-muted);
+    border-color: var(--accent-border);
+    color: var(--accent);
+}
+
+.pill-status-deprecated {
+    background: rgba(245, 158, 11, 0.10);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #FBBF24;
+}
+
+.pill-status-active,
+.pill-status-retained {
+    background: rgba(34, 197, 94, 0.10);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #4ADE80;
+}
+
+.pill-status-unknown {
+    background: rgba(148, 163, 184, 0.10);
+    border-color: rgba(148, 163, 184, 0.30);
+    color: #CBD5E1;
 }
 
 /* ── Horizontal Timeline (Deprecated vX -> Removed vY) ─────────────────────── */
@@ -1897,7 +1900,7 @@ if is_home:
         padding: 0 0 106px !important;
         gap: 0 !important;
         border: 1px solid rgba(255, 255, 255, 0.09) !important;
-        border-radius: 40px !important;
+        border-radius: 5px !important;
         overflow: hidden !important;
         background-origin: border-box !important;
         background-repeat: repeat, repeat, no-repeat, no-repeat !important;
@@ -1994,11 +1997,6 @@ if is_home:
 
     if submitted and query_val:
         st.session_state.search_query = query_val
-
-    # Check chip query param
-    if "q" in query_params:
-        st.session_state.search_query = query_params["q"]
-
     # Show Search Results if Search is active
     if st.session_state.search_query:
         matched = find_decision(st.session_state.search_query)
@@ -2033,7 +2031,7 @@ if is_home:
                             </div>
                         </div>
                         <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
-                            <span class="pill-status-removed">{matched.get('status', 'removed')}</span>
+                            <span class="{status_badge_class(matched.get('status'))}">{matched.get('status', 'unknown')}</span>
                             {src_badge_html}
                             <a href="?page=explore&decision={matched['entity']}" target="_self" class="decision-badge">
                                 <span>Explorer</span>
@@ -2271,7 +2269,7 @@ elif is_explore:
     st.markdown('<div style="height: 1.8rem;"></div>', unsafe_allow_html=True)
 
     # Header Row
-    st.markdown(clean_html("""
+    st.markdown(clean_html(f"""
     <div class="section-header-row">
         <div class="section-title-wrap">
             <div class="title-icon-box">
@@ -2288,7 +2286,7 @@ elif is_explore:
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
             </svg>
-            <span>3 Verified Records</span>
+            <span>{len(CURATED_DATA)} Verified Records</span>
         </div>
     </div>
     """), unsafe_allow_html=True)
@@ -2357,7 +2355,7 @@ elif is_explore:
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
-                    <span class="pill-status-removed">{decision_data.get('status', 'removed')}</span>
+                    <span class="{status_badge_class(decision_data.get('status'))}">{decision_data.get('status', 'unknown')}</span>
                     {src_badge_html}
                     <div class="decision-badge">Verified Decision</div>
                 </div>
@@ -2395,7 +2393,7 @@ elif is_explore:
                     </div>
                     <div>
                         <div class="stat-meta-label">Current Status</div>
-                        <div><span class="pill-status-removed">Removed</span></div>
+                        <div><span class="{status_badge_class(decision_data.get('status'))}">{decision_data.get('status', 'unknown').capitalize()}</span></div>
                     </div>
                 </div>
             </div>
@@ -2635,7 +2633,7 @@ elif is_about:
                     <div class="legend-item">
                         <span class="legend-dot"></span>
                         <div>
-                            <span class="legend-name">Method / Function</span>
+                            <span class="legend-name">Decision</span>
                             <div class="legend-example">app.before_first_request</div>
                         </div>
                     </div>
@@ -2643,14 +2641,7 @@ elif is_about:
                         <span class="legend-dot"></span>
                         <div>
                             <span class="legend-name">Change Event</span>
-                            <div class="legend-example">Deprecated, Removed</div>
-                        </div>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-dot"></span>
-                        <div>
-                            <span class="legend-name">Version</span>
-                            <div class="legend-example">Flask v2.2.0, v2.3.0</div>
+                            <div class="legend-example">Removed · Flask 2.3.0</div>
                         </div>
                     </div>
                     <div class="legend-item">
@@ -2672,17 +2663,9 @@ elif is_about:
                         </defs>
 
                         <!-- Lines -->
-                        <!-- Method to Decision -->
-                        <line x1="85" y1="115" x2="135" y2="115" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
-                        <text x="110" y="106" font-size="8.5" fill="#94A3B8" text-anchor="middle" font-family="'JetBrains Mono', monospace">OF</text>
-
                         <!-- Decision to ChangeEvent (top) -->
                         <line x1="180" y1="95" x2="210" y2="48" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
-                        <text x="215" y="74" font-size="8.5" fill="#94A3B8" font-family="'JetBrains Mono', monospace">HAS_CHANGE</text>
-
-                        <!-- Decision to Version (right) -->
-                        <line x1="225" y1="115" x2="275" y2="115" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
-                        <text x="250" y="106" font-size="8.5" fill="#94A3B8" text-anchor="middle" font-family="'JetBrains Mono', monospace">IN_VERSION</text>
+                        <text x="215" y="74" font-size="8.5" fill="#94A3B8" font-family="'JetBrains Mono', monospace">HAS_EVENT</text>
 
                         <!-- Decision to Evidence (bottom) -->
                         <line x1="180" y1="135" x2="180" y2="180" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
@@ -2694,22 +2677,10 @@ elif is_about:
                             <text x="62" y="18" font-size="11" font-weight="600" fill="#F8FAFC" text-anchor="middle" font-family="Inter, sans-serif">ChangeEvent</text>
                         </g>
 
-                        <!-- Left Node: Method -->
-                        <g transform="translate(10, 101)">
-                            <rect x="0" y="0" width="80" height="28" rx="6" fill="#161922" stroke="#A78BFA" stroke-width="1.2"/>
-                            <text x="40" y="18" font-size="11" font-weight="600" fill="#F8FAFC" text-anchor="middle" font-family="Inter, sans-serif">Method</text>
-                        </g>
-
                         <!-- Center Node: Decision -->
                         <g transform="translate(138, 99)">
                             <rect x="0" y="0" width="90" height="32" rx="6" fill="#A78BFA" stroke="#C4B5FD" stroke-width="1.2"/>
                             <text x="45" y="20" font-size="11.5" font-weight="700" fill="#111318" text-anchor="middle" font-family="Inter, sans-serif">Decision</text>
-                        </g>
-
-                        <!-- Right Node: Version -->
-                        <g transform="translate(280, 101)">
-                            <rect x="0" y="0" width="85" height="28" rx="6" fill="#161922" stroke="#A78BFA" stroke-width="1.2"/>
-                            <text x="42" y="18" font-size="11" font-weight="600" fill="#F8FAFC" text-anchor="middle" font-family="Inter, sans-serif">Version</text>
                         </g>
 
                         <!-- Bottom Node: Evidence -->
