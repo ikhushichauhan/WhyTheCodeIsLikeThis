@@ -54,10 +54,20 @@ logo_b64 = get_asset_b64(LOGO_PATH)
 
 # ── Neo4j Config ─────────────────────────────────────────────────────────────
 
-URL = os.getenv("NEO4J_HTTP_URL")
-USER = os.getenv("NEO4J_USERNAME")
-PASSWORD = os.getenv("NEO4J_PASSWORD")
-DATABASE = os.getenv("NEO4J_DATABASE")
+def get_config(key):
+    value = os.getenv(key)
+    if value:
+        return value
+    try:
+        return st.secrets.get(key)
+    except Exception:
+        return None
+
+
+URL = get_config("NEO4J_HTTP_URL")
+USER = get_config("NEO4J_USERNAME")
+PASSWORD = get_config("NEO4J_PASSWORD")
+DATABASE = get_config("NEO4J_DATABASE")
 ENDPOINT = f"{URL}/db/{DATABASE}/query/v2" if URL and DATABASE else None
 
 # Verified Reference Metadata (Official Pallets Issues and PRs)
