@@ -47,10 +47,7 @@ VERIFIED_ACTIONS = {
         "Move initialisation logic into the application factory or "
         "use app.app_context() during setup instead of @app.before_first_request."
     ),
-    "got_first_request": (
-        "Remove checks against app.got_first_request. "
-        "This property was removed alongside before_first_request."
-    ),
+    "got_first_request": None,  # No verified replacement API exists in primary sources
     "test_client.as_tuple": (
         "Replace as_tuple=True in test client calls with direct attribute "
         "access on the response object (response.status, response.headers, response.data)."

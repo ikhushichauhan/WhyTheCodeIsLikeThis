@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import code_scanner
 import pr_analyzer
 import alert_engine
+import migration_guidance
 
 load_dotenv()
 
@@ -381,51 +382,108 @@ def find_decision(question):
 
     return None
 
+def render_migration_guidance_component(symbol: str, target_version: Optional[str] = None):
+    """Renders evidence-backed migration guidance for a detected API (Step 7)."""
+    guidance = migration_guidance.get_migration_guidance(symbol, target_version=target_version)
+    if not guidance:
+        st.markdown(clean_html("""
+        <div style="font-size: 0.88rem; color: var(--text-muted); padding: 0.85rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin: 0.8rem 0;">
+            <strong style="color: var(--text-secondary);">No verified migration guidance available:</strong> This symbol is not present in the currently supported curated Flask dataset. Rationale refuses to infer or fabricate replacement guidance.
+        </div>
+        """), unsafe_allow_html=True)
+        return
+
+    st.markdown(clean_html("""
+    <div class="migration-header-wrap" style="margin-top: 0.6rem; margin-bottom: 0.6rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B6FD6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 3h5v5"></path>
+            <path d="M4 20L21 3"></path>
+            <path d="M21 16v5h-5"></path>
+            <path d="M15 15l6 6"></path>
+            <path d="M4 4l5 5"></path>
+        </svg>
+        <span class="detail-section-title" style="margin:0;">Verified Migration Guidance</span>
+        <span class="illustrative-pill">Primary Evidence</span>
+    </div>
+    """), unsafe_allow_html=True)
+
+    # 1. Verified replacement or explicit refusal notice
+    if guidance.has_verified_replacement and guidance.replacement:
+        st.markdown(clean_html(f"""
+        <div class="alert-rec-box" style="margin-bottom: 0.8rem;">
+            <strong>Verified Replacement / Approach:</strong> {html.escape(guidance.replacement)}
+        </div>
+        """), unsafe_allow_html=True)
+    else:
+        st.markdown(clean_html("""
+        <div style="font-size: 0.88rem; color: #FCA5A5; padding: 0.75rem 1rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; margin-bottom: 0.8rem;">
+            <strong>No verified replacement guidance is currently available for this API.</strong>
+        </div>
+        """), unsafe_allow_html=True)
+
+    # 2. Why migration is required
+    st.markdown(clean_html(f"""
+    <div class="rationale-quote-box" style="margin-bottom: 0.8rem;">
+        <div style="font-size: 0.8rem; color: #C4B5FD; font-weight: 600; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.05em;">Why Migration Is Required</div>
+        <div style="color: var(--text-secondary); font-size: 0.88rem; line-height: 1.6;">{html.escape(guidance.why_migration_required)}</div>
+    </div>
+    """), unsafe_allow_html=True)
+
+    # 3. Version status & target notice if present
+    if guidance.target_version_notice:
+        st.caption(f"⚠️ {guidance.target_version_notice}")
+    elif guidance.version_status:
+        st.caption(f"**Lifecycle Status:** {guidance.version_status}")
+
+    # 4. Verified maintainer quote if available
+    if guidance.source_quote:
+        ref_label = f" (Ref: #{guidance.source_ref})" if guidance.source_ref else ""
+        st.markdown(clean_html(f"""
+        <div style="font-size: 0.84rem; color: #E2E8F0; font-style: italic; padding: 0.6rem 0.9rem; background: rgba(255,255,255,0.03); border-left: 3px solid #8B6FD6; border-radius: 4px; margin: 0.6rem 0;">
+            "{html.escape(guidance.source_quote)}"{ref_label}
+        </div>
+        """), unsafe_allow_html=True)
+
+    # 5. Primary source links
+    if guidance.evidence_links:
+        ev_items = []
+        for ev in guidance.evidence_links:
+            ev_items.append(f'<a href="{ev["url"]}" target="_blank" style="color:#C4B5FD; text-decoration:underline; font-size:0.83rem; margin-right:1rem;">{html.escape(ev["label"])}</a>')
+        st.markdown(clean_html(f"""
+        <div style="margin: 0.5rem 0 0.8rem;">
+            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Primary Sources: </span>
+            {''.join(ev_items)}
+        </div>
+        """), unsafe_allow_html=True)
+
+    # 6. Limitations notice if present
+    if guidance.limitations:
+        st.caption(f"ℹ️ **Note & Limitations:** {guidance.limitations}")
+
+    # 7. Optional code example (ONLY if explicitly supported by reliable evidence)
+    if guidance.has_code_example and guidance.before_code and guidance.after_code:
+        st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
+        col_b, col_a = st.columns(2)
+        with col_b:
+            st.markdown("**Before** *(Illustrative example)*")
+            st.code(guidance.before_code, language="python")
+        with col_a:
+            st.markdown("**After** *(Verified approach)*")
+            st.code(guidance.after_code, language="python")
+
+
 def render_migration_and_timeline(decision_data):
     """Renders migration guidance (Before vs After) and historical timeline using clean Streamlit components."""
     entity = decision_data.get("entity", "")
     has_rationale = decision_data.get("has_rationale", True) and bool(decision_data.get("rationale"))
-    mig = MIGRATION_DATA.get(entity)
     if not has_rationale:
         st.markdown(clean_html("""
         <div style="font-size: 0.88rem; color: var(--text-muted); padding: 0.85rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1.2rem;">
             <strong style="color: var(--text-secondary);">Migration Guidance Refusal:</strong> No verified replacement or migration guidance is documented for this decision. This system refuses to invent or infer migration recommendations without verified sources.
         </div>
         """), unsafe_allow_html=True)
-    elif mig:
-        st.markdown(clean_html("""
-        <div class="migration-header-wrap">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B6FD6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 3h5v5"></path>
-                <path d="M4 20L21 3"></path>
-                <path d="M21 16v5h-5"></path>
-                <path d="M15 15l6 6"></path>
-                <path d="M4 4l5 5"></path>
-            </svg>
-            <span class="detail-section-title" style="margin:0;">Migration Guidance</span>
-            <span class="illustrative-pill">Illustrative example</span>
-        </div>
-        """), unsafe_allow_html=True)
-
-        st.markdown(clean_html(f"""
-        <div class="rationale-quote-box" style="margin-bottom: 0.8rem;">
-            <div style="font-size: 0.82rem; color: #C4B5FD; font-weight: 600; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.05em;">Official Guidance</div>
-            <div>{mig['official_guidance']}</div>
-            <div style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.88rem; line-height: 1.6;">{mig['explanation']}</div>
-        </div>
-        """), unsafe_allow_html=True)
-
-        if mig.get("compatibility"):
-            st.caption(f"**Compatibility Note:** {mig['compatibility']}")
-
-        st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
-        col_b, col_a = st.columns(2)
-        with col_b:
-            st.markdown("**Before** *(Illustrative example)*")
-            st.code(mig["before_code"], language="python")
-        with col_a:
-            st.markdown("**After** *(Illustrative example)*")
-            st.code(mig["after_code"], language="python")
+    else:
+        render_migration_guidance_component(entity)
 
     events = decision_data.get("events", [])
     if events:
@@ -2814,6 +2872,9 @@ with app.test_client() as client:
                     </div>
                     """), unsafe_allow_html=True)
 
+                    with st.expander(f"View Verified Migration Guidance: {finding.symbol}", expanded=False):
+                        render_migration_guidance_component(finding.symbol, target_version=target_v.strip() if target_v else None)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PAGE 4: PULL REQUEST ANALYZER (DIFF INSPECTION)
@@ -3080,6 +3141,9 @@ elif is_pr:
                             </div>
                         </div>
                         """), unsafe_allow_html=True)
+
+                        with st.expander(f"View Verified Migration Guidance: {finding.symbol}", expanded=False):
+                            render_migration_guidance_component(finding.symbol, target_version=pr_target_v.strip() if pr_target_v else None)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -3401,6 +3465,9 @@ def test_api(client):
                             st.caption(f"**API Symbol:** `{alert.symbol}`")
                             st.caption(f"**Detection Source:** {alert.source}")
                             st.caption("Status updates are preserved during your active browser session.")
+
+                    with st.expander(f"View Verified Migration Guidance: {alert.symbol}", expanded=False):
+                        render_migration_guidance_component(alert.symbol, target_version=eval_target_v)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
