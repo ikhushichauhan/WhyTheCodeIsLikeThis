@@ -1,4 +1,5 @@
 import os
+import html
 import base64
 import requests
 from PIL import Image
@@ -267,14 +268,13 @@ def query_neo4j_decision(question):
 
     quote = None
     for it in evidence:
-        if it.get("quote"):
-            quote = it["quote"]
+        if it.get("quote") and str(it["quote"]).strip():
+            quote = str(it["quote"]).strip()
             break
-    if not quote:
-        if entity in CURATED_DATA:
-            quote = CURATED_DATA[entity]["rationale"]
-        else:
-            quote = "Verified decision recorded from official Flask maintenance history."
+
+    # Strictly avoid fallback that invents or fabricates a rationale when evidence quote is missing
+    has_rationale = bool(quote)
+    rationale = quote if has_rationale else None
 
     ev_list = []
     seen_urls = set()
@@ -304,11 +304,20 @@ def query_neo4j_decision(question):
         "dep_version": dep_v,
         "rem_version": rem_v,
         "subtitle": f"Deprecated in Flask {dep_v.lstrip('v')}",
-        "rationale": quote,
+        "rationale": rationale,
+        "has_rationale": has_rationale,
+        "rationale_status": "verified" if has_rationale else "missing_evidence",
         "evidence": ev_list,
         "events": events,
         "source": "Neo4j"
     }, None
+
+def is_generic_query(question):
+    """Checks if a query is empty, too short, or a generic term."""
+    if not question:
+        return True
+    q_clean = question.strip().lower()
+    return len(q_clean) < 3 or q_clean in GENERIC_TERMS
 
 def find_decision(question):
     """Retrieval flow:
@@ -317,11 +326,9 @@ def find_decision(question):
     3. If Neo4j is unavailable or no record exists, fallback to CURATED_DATA.
     4. Return None for unknown queries.
     """
-    if not question:
+    if is_generic_query(question):
         return None
     q_clean = question.strip().lower()
-    if len(q_clean) < 3 or q_clean in GENERIC_TERMS:
-        return None
 
     # Step 1: Query Neo4j FIRST
     neo_result, neo_error = query_neo4j_decision(question)
@@ -337,6 +344,11 @@ def find_decision(question):
         )
         if key_matches:
             result = dict(val)
+            rat = result.get("rationale")
+            has_rat = bool(rat and str(rat).strip())
+            result["has_rationale"] = has_rat
+            result["rationale"] = str(rat).strip() if has_rat else None
+            result["rationale_status"] = "verified" if has_rat else "missing_evidence"
             result["source"] = "Local fallback"
             result["db_note"] = neo_error or "Neo4j returned no matching record; showing bundled data."
             return result
@@ -346,8 +358,15 @@ def find_decision(question):
 def render_migration_and_timeline(decision_data):
     """Renders migration guidance (Before vs After) and historical timeline using clean Streamlit components."""
     entity = decision_data.get("entity", "")
+    has_rationale = decision_data.get("has_rationale", True) and bool(decision_data.get("rationale"))
     mig = MIGRATION_DATA.get(entity)
-    if mig:
+    if not has_rationale:
+        st.markdown(clean_html("""
+        <div style="font-size: 0.88rem; color: var(--text-muted); padding: 0.85rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1.2rem;">
+            <strong style="color: var(--text-secondary);">Migration Guidance Refusal:</strong> No verified replacement or migration guidance is documented for this decision. This system refuses to invent or infer migration recommendations without verified sources.
+        </div>
+        """), unsafe_allow_html=True)
+    elif mig:
         st.markdown(clean_html("""
         <div class="migration-header-wrap">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B6FD6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -2009,97 +2028,133 @@ if is_home:
         st.session_state.search_query = query_val
     # Show Search Results if Search is active
     if st.session_state.search_query:
-        matched = find_decision(st.session_state.search_query)
-        if matched:
-            src_type = matched.get("source", "Local fallback")
-            src_cls = "source-neo4j" if src_type == "Neo4j" else "source-fallback"
-            src_icon_svg = db_icon_svg if src_type == "Neo4j" else pkg_icon_svg
-            src_badge_html = f'<span class="source-badge {src_cls}">{src_icon_svg}<span>Source: {src_type}</span></span>'
-            db_note_html = f'<div style="font-size:0.8rem; color:#A78BFA; background:rgba(167,139,250,0.08); border:1px solid rgba(167,139,250,0.25); border-radius:8px; padding:0.5rem 0.9rem; margin-bottom:1.2rem;">Notice: {matched["db_note"]}</div>' if matched.get("db_note") else ""
-
-            ev_buttons = ""
-            for ev in matched["evidence"]:
-                ev_buttons += f"""
-                <a href="{ev['url']}" target="_blank" class="evidence-pill-btn">
-                    {github_svg}
-                    <span>{ev['label']}</span>
-                    {ext_arrow_svg}
-                </a>
-                """
-
+        raw_query = st.session_state.search_query.strip()
+        if is_generic_query(raw_query):
             st.markdown(clean_html(f"""
-            <div style="width: 100%; margin: 0 auto 1.5rem;">
-                <div class="detail-panel">
-                    <div class="detail-top-row">
-                        <div class="detail-entity-wrap">
-                            <div class="detail-code-icon">
-                                {code_icon_svg}
-                            </div>
-                            <div>
-                                <div class="detail-title">{matched['entity']}</div>
-                                <div class="detail-category">{matched['category']}</div>
-                            </div>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
-                            <span class="{status_badge_class(matched.get('status'))}">{matched.get('status', 'unknown')}</span>
-                            {src_badge_html}
-                            <a href="?page=explore&decision={matched['entity']}" target="_self" class="decision-badge">
-                                <span>Explorer</span>
-                                {ext_arrow_svg}
-                            </a>
-                        </div>
-                    </div>
-                    {db_note_html}
-                    <div class="horizontal-timeline-bar">
-                        <div class="timeline-step-item">
-                            <div class="timeline-circle"></div>
-                            <div>
-                                <div class="timeline-text-lbl">Deprecated</div>
-                                <div class="timeline-text-ver">{matched['dep_version']}</div>
-                            </div>
-                        </div>
-                        <div class="timeline-connector"></div>
-                        <div class="timeline-step-item">
-                            <div class="timeline-circle timeline-circle-removed"></div>
-                            <div>
-                                <div class="timeline-text-lbl">Removed</div>
-                                <div class="timeline-text-ver">{matched['rem_version']}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="detail-section-title">
-                        <span>Why was it removed?</span>
-                    </div>
+            <div style="text-align: center; margin: 2rem auto 3rem; padding: 2.2rem 1.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;">
+                <div style="display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:12px; color:#EF4444; margin-bottom:0.75rem;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+                <div style="font-size: 1.15rem; font-weight: 600; color: var(--text-primary);">Query safely rejected: Too generic or short</div>
+                <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.6;">
+                    The search term <code>{html.escape(raw_query)}</code> is too generic or under 3 characters. Generic queries are safely rejected to prevent ambiguous results. Please search for a specific symbol such as <code>before_first_request</code>, <code>got_first_request</code>, or <code>test_client.as_tuple</code>.
+                </div>
+            </div>
+            """), unsafe_allow_html=True)
+        else:
+            matched = find_decision(raw_query)
+            if matched:
+                has_rat = matched.get("has_rationale", True) and bool(matched.get("rationale"))
+                src_type = matched.get("source", "Local fallback")
+                src_cls = "source-neo4j" if src_type == "Neo4j" else "source-fallback"
+                src_icon_svg = db_icon_svg if src_type == "Neo4j" else pkg_icon_svg
+                src_badge_html = f'<span class="source-badge {src_cls}">{src_icon_svg}<span>Source: {src_type}</span></span>'
+                db_note_html = f'<div style="font-size:0.8rem; color:#A78BFA; background:rgba(167,139,250,0.08); border:1px solid rgba(167,139,250,0.25); border-radius:8px; padding:0.5rem 0.9rem; margin-bottom:1.2rem;">Notice: {matched["db_note"]}</div>' if matched.get("db_note") else ""
+
+                ev_buttons = ""
+                for ev in matched.get("evidence", []):
+                    ev_buttons += f"""
+                    <a href="{ev['url']}" target="_blank" class="evidence-pill-btn">
+                        {github_svg}
+                        <span>{ev['label']}</span>
+                        {ext_arrow_svg}
+                    </a>
+                    """
+                if not ev_buttons:
+                    ev_buttons = '<span style="font-size:0.85rem; color:var(--text-muted);">No external evidence links recorded.</span>'
+
+                if has_rat:
+                    rationale_box_html = f"""
                     <div class="rationale-quote-box">
                         {matched['rationale']}
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
-                        <span class="detail-section-title" style="margin:0;">Evidence</span>
-                        <div class="evidence-btn-group">
-                            {ev_buttons}
+                    """
+                else:
+                    rationale_box_html = f"""
+                    <div class="rationale-quote-box" style="border-left: 3px solid #F59E0B; background: rgba(245, 158, 11, 0.08);">
+                        <div style="font-size: 0.85rem; font-weight: 600; color: #FBBF24; margin-bottom: 0.35rem;">
+                            Verified Rationale Unavailable
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
+                            A decision record exists for <code>{html.escape(matched['entity'])}</code>, but verified rationale is unavailable in repository evidence. This system refuses to display fabricated or placeholder explanations.
+                        </div>
+                    </div>
+                    """
+
+                st.markdown(clean_html(f"""
+                <div style="width: 100%; margin: 0 auto 1.5rem;">
+                    <div class="detail-panel">
+                        <div class="detail-top-row">
+                            <div class="detail-entity-wrap">
+                                <div class="detail-code-icon">
+                                    {code_icon_svg}
+                                </div>
+                                <div>
+                                    <div class="detail-title">{matched['entity']}</div>
+                                    <div class="detail-category">{matched['category']}</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                                <span class="{status_badge_class(matched.get('status'))}">{matched.get('status', 'unknown')}</span>
+                                {src_badge_html}
+                                <a href="?page=explore&decision={matched['entity']}" target="_self" class="decision-badge">
+                                    <span>Explorer</span>
+                                    {ext_arrow_svg}
+                                </a>
+                            </div>
+                        </div>
+                        {db_note_html}
+                        <div class="horizontal-timeline-bar">
+                            <div class="timeline-step-item">
+                                <div class="timeline-circle"></div>
+                                <div>
+                                    <div class="timeline-text-lbl">Deprecated</div>
+                                    <div class="timeline-text-ver">{matched['dep_version']}</div>
+                                </div>
+                            </div>
+                            <div class="timeline-connector"></div>
+                            <div class="timeline-step-item">
+                                <div class="timeline-circle timeline-circle-removed"></div>
+                                <div>
+                                    <div class="timeline-text-lbl">Removed</div>
+                                    <div class="timeline-text-ver">{matched['rem_version']}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="detail-section-title">
+                            <span>Why was it removed?</span>
+                        </div>
+                        {rationale_box_html}
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+                            <span class="detail-section-title" style="margin:0;">Evidence</span>
+                            <div class="evidence-btn-group">
+                                {ev_buttons}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            """), unsafe_allow_html=True)
+                """), unsafe_allow_html=True)
 
-            with st.container():
-                with st.expander("View Migration Guidance & Historical Timeline", expanded=True):
-                    render_migration_and_timeline(matched)
-        else:
-            st.markdown(clean_html("""
-            <div style="text-align: center; margin: 2rem auto 3rem; padding: 2.2rem 1.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;">
-                <div style="display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; background:var(--accent-muted); border:1px solid var(--accent-border); border-radius:12px; color:var(--accent); margin-bottom:0.75rem;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
+                with st.container():
+                    expander_label = "View Migration Guidance & Historical Timeline" if has_rat else "View Historical Timeline"
+                    with st.expander(expander_label, expanded=True):
+                        render_migration_and_timeline(matched)
+            else:
+                st.markdown(clean_html(f"""
+                <div style="text-align: center; margin: 2rem auto 3rem; padding: 2.2rem 1.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;">
+                    <div style="display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; background:var(--accent-muted); border:1px solid var(--accent-border); border-radius:12px; color:var(--accent); margin-bottom:0.75rem;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                    </div>
+                    <div style="font-size: 1.15rem; font-weight: 600; color: var(--text-primary);">No matching decision found.</div>
+                    <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.6;">
+                        The symbol <code>{html.escape(raw_query)}</code> is not present in the currently supported curated Flask dataset. This system follows an evidence-based refusal policy and will not generate or infer an unverified rationale. Try searching for <code>before_first_request</code>, <code>got_first_request</code>, or <code>test_client.as_tuple</code>.
+                    </div>
                 </div>
-                <div style="font-size: 1.15rem; font-weight: 600; color: var(--text-primary);">No verified evidence found.</div>
-                <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.35rem;">
-                    This system refuses to generate unverified explanations. Try searching for <code>before_first_request</code>, <code>got_first_request</code>, or <code>test_client.as_tuple</code>.
-                </div>
-            </div>
-            """), unsafe_allow_html=True)
+                """), unsafe_allow_html=True)
 
     # 3 Feature Cards (Clean SVG icons, SaaS style)
     st.markdown(clean_html("""
@@ -2346,6 +2401,25 @@ elif is_explore:
             </a>
             """
 
+        exp_has_rat = decision_data.get("has_rationale", True) and bool(decision_data.get("rationale"))
+        if exp_has_rat:
+            exp_rationale_html = f"""
+            <div class="rationale-quote-box">
+                {decision_data['rationale']}
+            </div>
+            """
+        else:
+            exp_rationale_html = f"""
+            <div class="rationale-quote-box" style="border-left: 3px solid #F59E0B; background: rgba(245, 158, 11, 0.08);">
+                <div style="font-size: 0.85rem; font-weight: 600; color: #FBBF24; margin-bottom: 0.35rem;">
+                    Verified Rationale Unavailable
+                </div>
+                <div style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
+                    A decision record exists for <code>{html.escape(decision_data['entity'])}</code>, but verified rationale is unavailable in repository evidence. This system refuses to display fabricated or placeholder explanations.
+                </div>
+            </div>
+            """
+
         src_type = decision_data.get("source", "Local fallback")
         src_cls = "source-neo4j" if src_type == "Neo4j" else "source-fallback"
         src_icon_svg = db_icon_svg if src_type == "Neo4j" else pkg_icon_svg
@@ -2414,9 +2488,7 @@ elif is_explore:
                 </svg>
                 <span>Why was it removed?</span>
             </div>
-            <div class="rationale-quote-box">
-                {decision_data['rationale']}
-            </div>
+            {exp_rationale_html}
 
             <div class="detail-section-title">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">

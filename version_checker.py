@@ -11,6 +11,20 @@ def load_decisions():
         return json.load(file)
 
 
+def get_verified_versions(decisions=None):
+    if decisions is None:
+        decisions = load_decisions()
+    versions = set()
+    for d in decisions:
+        for ev in d.get("events", []):
+            if ev.get("version"):
+                try:
+                    versions.add(Version(ev["version"]))
+                except InvalidVersion:
+                    pass
+    return versions
+
+
 def check_status(decision, flask_version):
     events = decision.get("events", [])
 
@@ -64,6 +78,12 @@ def main():
         flask_version = Version(user_input)
     except InvalidVersion:
         print("Invalid version! Example: 2.2.0")
+        return
+
+    verified_versions = get_verified_versions(decisions)
+    if flask_version not in verified_versions:
+        sorted_vers = ", ".join(sorted(str(v) for v in verified_versions))
+        print(f"Unavailable version evidence: No verified version information for Flask {flask_version} (supported versions: {sorted_vers}).")
         return
 
     print(f"\nRationale Version Check: Flask {flask_version}")
