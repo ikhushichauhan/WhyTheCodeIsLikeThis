@@ -7,6 +7,8 @@ import streamlit as st
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 
+import code_scanner
+
 load_dotenv()
 
 # ── Paths & Config ───────────────────────────────────────────────────────────
@@ -1860,6 +1862,7 @@ PROJECT_REPO_URL = ""   # put your own GitHub repo link here (falls back to the 
 TEAM_NAME = ""          # put your team name here (hidden when empty)
 is_home = (cur_page == "home")
 is_explore = (cur_page == "explore")
+is_scanner = (cur_page == "scanner")
 is_about = (cur_page == "about")
 
 github_svg = """<svg height="15" width="15" viewBox="0 0 16 16" fill="currentColor">
@@ -1897,6 +1900,7 @@ st.markdown(clean_html(f"""
     <div class="nav-pill-group">
         <a href="?page=home" target="_self" class="nav-link {'active' if is_home else ''}">Home</a>
         <a href="?page=explore" target="_self" class="nav-link {'active' if is_explore else ''}">Explore Decisions</a>
+        <a href="?page=scanner" target="_self" class="nav-link {'active' if is_scanner else ''}">Code Scanner</a>
         <a href="?page=about" target="_self" class="nav-link {'active' if is_about else ''}">About</a>
     </div>
     {right_header_elem}
@@ -2508,7 +2512,207 @@ elif is_explore:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PAGE 3: TECHNICAL APPROACH / ABOUT
+# PAGE 3: CODE SCANNER (PYTHON STATIC AST ANALYSIS)
+# ══════════════════════════════════════════════════════════════════════════════
+
+elif is_scanner:
+
+    st.markdown('<div style="height: 1.8rem;"></div>', unsafe_allow_html=True)
+
+    # Header Row
+    st.markdown(clean_html("""
+    <div class="section-header-row">
+        <div class="section-title-wrap">
+            <span class="sec-pill">STATIC CODE ANALYSIS</span>
+            <h2 class="sec-title" style="margin: 0.35rem 0 0.2rem;">Python Deprecated API Scanner</h2>
+            <p class="sec-desc">Statically inspects Python source code using AST parsing to detect deprecated or removed Flask APIs. Never executes user code.</p>
+        </div>
+        <div class="badge-count-pill">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+            </svg>
+            <span>3 Verified Patterns</span>
+        </div>
+    </div>
+    """), unsafe_allow_html=True)
+
+    col_input, col_meta = st.columns([2.3, 1], gap="large")
+
+    with col_input:
+        st.markdown("**1. Python Source Code**")
+        pasted_code = st.text_area(
+            "Python Source Code",
+            height=260,
+            placeholder="""# Example: Paste Python source code here
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.before_first_request
+def setup_app():
+    pass
+
+if not app.got_first_request:
+    setup_app()
+
+with app.test_client() as client:
+    res, env = client.get('/', as_tuple=True)""",
+            help="Code is parsed statically into an AST. It is never run or evaluated.",
+            label_visibility="collapsed",
+        )
+
+        uploaded_file = st.file_uploader(
+            "Or upload a Python (.py) file",
+            type=["py"],
+            help="Select a local Python source file to scan statically."
+        )
+
+    with col_meta:
+        st.markdown("**2. Scan Options**")
+        target_v = st.text_input(
+            "Target Flask Version (optional)",
+            placeholder="e.g. 2.2.0, 2.3.0, 3.0.0",
+            help="If provided, the scanner compares findings against verified lifecycle milestones to distinguish 'Deprecated' from 'Removed'."
+        )
+
+        st.caption(
+            "**Supported Detection Scope:**\n"
+            "- `@app.before_first_request`\n"
+            "- `app.got_first_request`\n"
+            "- `test_client.as_tuple`\n\n"
+            "*AST detection is strictly scoped to verified catalogue patterns.*"
+        )
+
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        scan_clicked = st.button("Scan Source Code", type="primary", use_container_width=True)
+
+    # Determine code to scan
+    source_to_scan = ""
+    file_label = "<input>"
+    if uploaded_file is not None:
+        try:
+            source_to_scan = uploaded_file.getvalue().decode("utf-8", errors="replace")
+            file_label = uploaded_file.name
+        except Exception as e:
+            st.error(f"Failed to read uploaded file: {e}")
+    elif pasted_code:
+        source_to_scan = pasted_code
+        file_label = "<pasted_code>"
+
+    if scan_clicked:
+        if not source_to_scan.strip():
+            st.info("Please paste Python source code or upload a .py file to scan.")
+        else:
+            scan_res = code_scanner.scan_code(
+                source_code=source_to_scan,
+                file_name=file_label,
+                target_version=target_v.strip() if target_v else None
+            )
+
+            st.markdown("<div style='height: 1.5rem;'></div>", unsafe_allow_html=True)
+
+            if not scan_res.success:
+                st.error(f"Scanner Notice: {scan_res.error}")
+            elif scan_res.total_findings == 0:
+                st.markdown(clean_html("""
+                <div style="text-align: center; margin: 1.5rem auto 2.5rem; padding: 2.2rem 1.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;">
+                    <div style="display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(34, 197, 94, 0.1); border:1px solid rgba(34, 197, 94, 0.25); border-radius:12px; color:#22C55E; margin-bottom:0.75rem;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                    <div style="font-size: 1.15rem; font-weight: 600; color: var(--text-primary);">No known deprecated Flask API patterns detected by the current scanner.</div>
+                    <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.6;">
+                        This scanner strictly checks against the current verified Flask catalogue (<code>app.before_first_request</code>, <code>got_first_request</code>, and <code>test_client.as_tuple</code>). This does not claim or certify that the entire codebase is free from other deprecations or issues.
+                    </div>
+                </div>
+                """), unsafe_allow_html=True)
+            else:
+                # Render summary header
+                st.markdown(clean_html(f"""
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 0.8rem;">
+                    <div>
+                        <span class="detail-section-title" style="margin: 0;">Scan Results</span>
+                        <span style="font-size: 0.88rem; color: var(--text-muted); margin-left: 0.5rem;">File: <code>{html.escape(scan_res.file_name)}</code> ({scan_res.lines_scanned} lines scanned)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <span class="source-badge source-fallback"><span>Total Findings: {scan_res.total_findings}</span></span>
+                    </div>
+                </div>
+                """), unsafe_allow_html=True)
+
+                # Render each finding
+                for idx, finding in enumerate(scan_res.findings):
+                    badge_cls = status_badge_class(finding.status.split()[0].lower())
+                    ev_link_html = ""
+                    if finding.evidence_url:
+                        ev_link_html = f"""
+                        <a href="{finding.evidence_url}" target="_blank" class="evidence-pill-btn">
+                            {github_svg}
+                            <span>Verified Source</span>
+                            {ext_arrow_svg}
+                        </a>
+                        """
+
+                    st.markdown(clean_html(f"""
+                    <div class="detail-panel" style="margin-bottom: 1.2rem;">
+                        <div class="detail-top-row">
+                            <div class="detail-entity-wrap">
+                                <div class="detail-code-icon">
+                                    {code_icon_svg}
+                                </div>
+                                <div>
+                                    <div class="detail-title">{finding.symbol}</div>
+                                    <div class="detail-category">{html.escape(finding.file_name)} — Line {finding.line}, Column {finding.col} (Pattern: {finding.detection_type})</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                                <span class="{badge_cls}">{finding.status}</span>
+                                <a href="?page=explore&decision={finding.symbol}" target="_self" class="decision-badge">
+                                    <span>Explorer</span>
+                                    {ext_arrow_svg}
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="horizontal-timeline-bar" style="margin: 1rem 0;">
+                            <div class="timeline-step-item">
+                                <div class="timeline-circle"></div>
+                                <div>
+                                    <div class="timeline-text-lbl">Deprecated</div>
+                                    <div class="timeline-text-ver">{finding.dep_version or 'N/A'}</div>
+                                </div>
+                            </div>
+                            <div class="timeline-connector"></div>
+                            <div class="timeline-step-item">
+                                <div class="timeline-circle timeline-circle-removed"></div>
+                                <div>
+                                    <div class="timeline-text-lbl">Removed</div>
+                                    <div class="timeline-text-ver">{finding.rem_version or 'N/A'}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-section-title">
+                            <span>Verified Rationale</span>
+                        </div>
+                        <div class="rationale-quote-box">
+                            {finding.explanation}
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-top: 1rem;">
+                            <span class="detail-section-title" style="margin:0;">Evidence</span>
+                            <div class="evidence-btn-group">
+                                {ev_link_html}
+                            </div>
+                        </div>
+                    </div>
+                    """), unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE 4: TECHNICAL APPROACH / ABOUT
 # ══════════════════════════════════════════════════════════════════════════════
 
 elif is_about:
