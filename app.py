@@ -8,6 +8,7 @@ from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
 
 import code_scanner
+import pr_analyzer
 
 load_dotenv()
 
@@ -1863,6 +1864,7 @@ TEAM_NAME = ""          # put your team name here (hidden when empty)
 is_home = (cur_page == "home")
 is_explore = (cur_page == "explore")
 is_scanner = (cur_page == "scanner")
+is_pr = (cur_page == "pr")
 is_about = (cur_page == "about")
 
 github_svg = """<svg height="15" width="15" viewBox="0 0 16 16" fill="currentColor">
@@ -1901,6 +1903,7 @@ st.markdown(clean_html(f"""
         <a href="?page=home" target="_self" class="nav-link {'active' if is_home else ''}">Home</a>
         <a href="?page=explore" target="_self" class="nav-link {'active' if is_explore else ''}">Explore Decisions</a>
         <a href="?page=scanner" target="_self" class="nav-link {'active' if is_scanner else ''}">Code Scanner</a>
+        <a href="?page=pr" target="_self" class="nav-link {'active' if is_pr else ''}">PR Analyzer</a>
         <a href="?page=about" target="_self" class="nav-link {'active' if is_about else ''}">About</a>
     </div>
     {right_header_elem}
@@ -2712,7 +2715,266 @@ with app.test_client() as client:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PAGE 4: TECHNICAL APPROACH / ABOUT
+# PAGE 4: PULL REQUEST ANALYZER (DIFF INSPECTION)
+# ══════════════════════════════════════════════════════════════════════════════
+
+elif is_pr:
+
+    st.markdown('<div style="height: 1.8rem;"></div>', unsafe_allow_html=True)
+
+    # Header Row
+    st.markdown(clean_html("""
+    <div class="section-header-row">
+        <div class="section-title-wrap">
+            <span class="sec-pill">GITHUB PR ANALYSIS</span>
+            <h2 class="sec-title" style="margin: 0.35rem 0 0.2rem;">Pull Request Diff Analyzer</h2>
+            <p class="sec-desc">Analyzes changed Python code in public GitHub Pull Requests to detect deprecated or removed Flask APIs. Distinguishes newly introduced code from surrounding context.</p>
+        </div>
+        <div class="badge-count-pill">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="18" r="3"></circle>
+                <circle cx="6" cy="6" r="3"></circle>
+                <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                <line x1="6" y1="9" x2="6" y2="21"></line>
+            </svg>
+            <span>Public PR Diff</span>
+        </div>
+    </div>
+    """), unsafe_allow_html=True)
+
+    col_url, col_opt = st.columns([2.5, 1], gap="large")
+
+    with col_url:
+        st.markdown("**1. Public GitHub Pull Request URL**")
+        pr_url_input = st.text_input(
+            "Public GitHub Pull Request URL",
+            placeholder="https://github.com/pallets/flask/pull/4997",
+            help="Enter a public GitHub PR URL (e.g. https://github.com/owner/repo/pull/123)",
+            label_visibility="collapsed"
+        )
+        st.caption("Example: `https://github.com/pallets/flask/pull/4997` (public unauthenticated GitHub REST API)")
+
+    with col_opt:
+        st.markdown("**2. Target Flask Version (Optional)**")
+        pr_target_v = st.text_input(
+            "Target Flask Version (optional)",
+            placeholder="e.g. 2.2.0, 2.3.0, 3.0.0",
+            help="If supplied, compares detected findings against verified milestones to distinguish 'Deprecated' from 'Removed'.",
+            label_visibility="collapsed"
+        )
+        st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+        analyze_btn = st.button("Analyze Pull Request", type="primary", use_container_width=True)
+
+    if analyze_btn:
+        if not pr_url_input.strip():
+            st.info("Please enter a public GitHub Pull Request URL.")
+        else:
+            with st.spinner("Fetching PR metadata and diff patches from GitHub..."):
+                pr_res = pr_analyzer.analyze_pr(
+                    pr_url=pr_url_input.strip(),
+                    target_version=pr_target_v.strip() if pr_target_v else None
+                )
+
+            st.markdown("<div style='height: 1.2rem;'></div>", unsafe_allow_html=True)
+
+            if not pr_res.success:
+                st.error(f"Analysis Notice: {pr_res.error}")
+            else:
+                # 1. PR Overview Card
+                state_badge = '<span class="pill-status pill-status-active">Open</span>' if pr_res.pr_state == "open" else '<span class="pill-status pill-status-removed">Closed</span>'
+                st.markdown(clean_html(f"""
+                <div class="detail-panel" style="margin-bottom: 1.5rem;">
+                    <div class="detail-top-row">
+                        <div class="detail-entity-wrap">
+                            <div class="detail-code-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="18" cy="18" r="3"></circle>
+                                    <circle cx="6" cy="6" r="3"></circle>
+                                    <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                                    <line x1="6" y1="9" x2="6" y2="21"></line>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="detail-title">{html.escape(pr_res.owner)} / {html.escape(pr_res.repo)} #{pr_res.pr_number}</div>
+                                <div class="detail-category">{html.escape(pr_res.pr_title)} (by @{html.escape(pr_res.author)})</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                            {state_badge}
+                            <a href="{pr_res.pr_url}" target="_blank" class="evidence-pill-btn">
+                                {github_svg}
+                                <span>Open PR</span>
+                                {ext_arrow_svg}
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid" style="margin-top: 1.2rem;">
+                        <div class="stat-item">
+                            <div class="stat-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="stat-meta-label">Files Changed</div>
+                                <div class="stat-meta-val">{pr_res.total_files_changed}</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="stat-meta-label">Python Files Analyzed</div>
+                                <div class="stat-meta-val">{len(pr_res.analyzed_files)}</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="stat-meta-label">Total Findings</div>
+                                <div class="stat-meta-val">{pr_res.total_findings} <span style="font-size:0.75rem; color:var(--text-muted);">({pr_res.added_findings_count} added, {pr_res.context_findings_count} context)</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """), unsafe_allow_html=True)
+
+                # 2. File Breakdown Expander
+                with st.expander("View Analyzed & Skipped Files Breakdown", expanded=False):
+                    col_af, col_sf = st.columns(2)
+                    with col_af:
+                        st.markdown(f"**Analyzed Python Files ({len(pr_res.analyzed_files)})**")
+                        if not pr_res.analyzed_files:
+                            st.caption("No Python files with available patches were analyzed.")
+                        for af in pr_res.analyzed_files:
+                            partial_tag = " ⚠️ **[Partially Analyzed]**" if af.status == "partially_analyzed" else ""
+                            st.markdown(f"- `+{af.additions} -{af.deletions}` **{af.filename}** ({af.findings_count} findings){partial_tag}")
+                            if af.status == "partially_analyzed":
+                                st.caption(f"  ↳ {af.reason}")
+                    with col_sf:
+                        st.markdown(f"**Skipped Files ({len(pr_res.skipped_files)})**")
+                        if not pr_res.skipped_files:
+                            st.caption("No files were skipped.")
+                        for sf in pr_res.skipped_files:
+                            st.markdown(f"- **{sf.filename}**: *{sf.reason}*")
+
+                # 3. Findings Section
+                if pr_res.total_findings == 0:
+                    st.markdown(clean_html("""
+                    <div style="text-align: center; margin: 1.5rem auto 2.5rem; padding: 2.2rem 1.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;">
+                        <div style="display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(34, 197, 94, 0.1); border:1px solid rgba(34, 197, 94, 0.25); border-radius:12px; color:#22C55E; margin-bottom:0.75rem;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div style="font-size: 1.15rem; font-weight: 600; color: var(--text-primary);">No known deprecated Flask API patterns were detected in the available changed Python code.</div>
+                        <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.6;">
+                            This analysis is strictly limited to the changed Python patch content for the 3 curated Flask decisions (<code>app.before_first_request</code>, <code>got_first_request</code>, and <code>test_client.as_tuple</code>). This does not claim or mean that the entire PR or repository is free of deprecated APIs.
+                        </div>
+                    </div>
+                    """), unsafe_allow_html=True)
+                else:
+                    st.markdown(f"### Detected Findings ({pr_res.total_findings})")
+                    for finding in pr_res.findings:
+                        # Distinguish added vs context badge
+                        if finding.change_type == "added":
+                            origin_badge = '<span class="pill-status pill-status-removed" style="background:rgba(239,68,68,0.15); color:#FCA5A5; border:1px solid rgba(239,68,68,0.3);">Added in PR</span>'
+                        else:
+                            origin_badge = '<span class="pill-status pill-status-deprecated" style="background:rgba(148,163,184,0.12); color:#CBD5E1; border:1px solid rgba(148,163,184,0.25);">Existing Context</span>'
+
+                        line_str = f"Line {finding.line_number}" if finding.line_number is not None else "Line unavailable"
+                        badge_cls = status_badge_class(finding.status.split()[0].lower())
+
+                        # Confidence badge: distinguish high from partial/medium
+                        if finding.confidence and "medium" in finding.confidence.lower():
+                            confidence_badge = '<span class="pill-status pill-status-deprecated" style="background:rgba(234,179,8,0.12); color:#FBBF24; border:1px solid rgba(234,179,8,0.3); font-size:0.72rem;">⚠ Partial Context</span>'
+                        else:
+                            confidence_badge = '<span class="pill-status pill-status-active" style="font-size:0.72rem;">High Confidence</span>'
+
+                        ev_link_html = ""
+                        if finding.evidence_url:
+                            ev_link_html = f"""
+                            <a href="{finding.evidence_url}" target="_blank" class="evidence-pill-btn">
+                                {github_svg}
+                                <span>Verified Evidence</span>
+                                {ext_arrow_svg}
+                            </a>
+                            """
+
+                        st.markdown(clean_html(f"""
+                        <div class="detail-panel" style="margin-bottom: 1.2rem;">
+                            <div class="detail-top-row">
+                                <div class="detail-entity-wrap">
+                                    <div class="detail-code-icon">
+                                        {code_icon_svg}
+                                    </div>
+                                    <div>
+                                        <div class="detail-title">{finding.symbol}</div>
+                                        <div class="detail-category"><code>{html.escape(finding.file_path)}</code> — {line_str} (Pattern: {finding.detection_type})</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                                    {origin_badge}
+                                    <span class="{badge_cls}">{finding.status}</span>
+                                    {confidence_badge}
+                                    <a href="?page=explore&decision={finding.symbol}" target="_self" class="decision-badge">
+                                        <span>Explorer</span>
+                                        {ext_arrow_svg}
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div style="margin: 0.8rem 0; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; font-family:'JetBrains Mono',monospace; font-size:0.85rem; color:#E2E8F0;">
+                                {html.escape(finding.snippet)}
+                            </div>
+
+                            <div class="horizontal-timeline-bar" style="margin: 1rem 0;">
+                                <div class="timeline-step-item">
+                                    <div class="timeline-circle"></div>
+                                    <div>
+                                        <div class="timeline-text-lbl">Deprecated</div>
+                                        <div class="timeline-text-ver">{finding.dep_version or 'N/A'}</div>
+                                    </div>
+                                </div>
+                                <div class="timeline-connector"></div>
+                                <div class="timeline-step-item">
+                                    <div class="timeline-circle timeline-circle-removed"></div>
+                                    <div>
+                                        <div class="timeline-text-lbl">Removed</div>
+                                        <div class="timeline-text-ver">{finding.rem_version or 'N/A'}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="detail-section-title">
+                                <span>Verified Rationale</span>
+                            </div>
+                            <div class="rationale-quote-box">
+                                {finding.explanation}
+                            </div>
+
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-top: 1rem;">
+                                <span class="detail-section-title" style="margin:0;">Evidence</span>
+                                <div class="evidence-btn-group">
+                                    {ev_link_html}
+                                </div>
+                            </div>
+                        </div>
+                        """), unsafe_allow_html=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE 5: TECHNICAL APPROACH / ABOUT
 # ══════════════════════════════════════════════════════════════════════════════
 
 elif is_about:
