@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 import code_scanner
 import pr_analyzer
+import alert_engine
 
 load_dotenv()
 
@@ -52,6 +53,28 @@ def status_badge_class(status) -> str:
     if normalized not in allowed_statuses:
         normalized = "unknown"
     return f"pill-status pill-status-{normalized}"
+
+
+def severity_badge_class(severity: str) -> str:
+    """Return CSS class for rule-based alert severity pills."""
+    s = str(severity or "").strip().lower()
+    if "critical" in s:
+        return "pill-status severity-pill-critical"
+    elif "high" in s:
+        return "pill-status severity-pill-high"
+    elif "medium" in s:
+        return "pill-status severity-pill-medium"
+    return "pill-status severity-pill-informational"
+
+
+def alert_status_badge_class(status: str) -> str:
+    """Return CSS class for alert workflow status (New, Needs Review, Resolved)."""
+    s = str(status or "").strip().lower()
+    if "resolved" in s:
+        return "pill-status alert-status-resolved"
+    elif "review" in s:
+        return "pill-status alert-status-needs-review"
+    return "pill-status alert-status-new"
 
 bg_b64 = get_asset_b64(BG_PATH)
 logo_b64 = get_asset_b64(LOGO_PATH)
@@ -1516,6 +1539,73 @@ button[kind="secondary"] {
     color: #CBD5E1;
 }
 
+/* ── Rule-Based Severity & Alert Status Pills (Step 6) ──────────────────────── */
+.severity-pill-critical {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border-color: rgba(239, 68, 68, 0.40) !important;
+    color: #F87171 !important;
+}
+
+.severity-pill-high {
+    background: rgba(249, 115, 22, 0.15) !important;
+    border-color: rgba(249, 115, 22, 0.40) !important;
+    color: #FB923C !important;
+}
+
+.severity-pill-medium {
+    background: rgba(245, 158, 11, 0.12) !important;
+    border-color: rgba(245, 158, 11, 0.35) !important;
+    color: #FBBF24 !important;
+}
+
+.severity-pill-informational {
+    background: rgba(59, 130, 246, 0.12) !important;
+    border-color: rgba(59, 130, 246, 0.35) !important;
+    color: #60A5FA !important;
+}
+
+.alert-status-new {
+    background: rgba(14, 165, 233, 0.15) !important;
+    border-color: rgba(14, 165, 233, 0.35) !important;
+    color: #38BDF8 !important;
+}
+
+.alert-status-needs-review {
+    background: rgba(234, 179, 8, 0.15) !important;
+    border-color: rgba(234, 179, 8, 0.35) !important;
+    color: #FACC15 !important;
+}
+
+.alert-status-resolved {
+    background: rgba(34, 197, 94, 0.15) !important;
+    border-color: rgba(34, 197, 94, 0.35) !important;
+    color: #4ADE80 !important;
+}
+
+.alert-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.4rem;
+    margin-bottom: 1.1rem;
+    transition: border-color 0.18s ease;
+}
+
+.alert-card:hover {
+    border-color: var(--accent-border);
+}
+
+.alert-rec-box {
+    background: rgba(34, 197, 94, 0.07);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin: 0.8rem 0;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: #D1FAE5;
+}
+
 /* ── Horizontal Timeline (Deprecated vX -> Removed vY) ─────────────────────── */
 .horizontal-timeline-bar {
     display: flex;
@@ -1865,6 +1955,7 @@ is_home = (cur_page == "home")
 is_explore = (cur_page == "explore")
 is_scanner = (cur_page == "scanner")
 is_pr = (cur_page == "pr")
+is_alerts = (cur_page == "alerts")
 is_about = (cur_page == "about")
 
 github_svg = """<svg height="15" width="15" viewBox="0 0 16 16" fill="currentColor">
@@ -1904,6 +1995,7 @@ st.markdown(clean_html(f"""
         <a href="?page=explore" target="_self" class="nav-link {'active' if is_explore else ''}">Explore Decisions</a>
         <a href="?page=scanner" target="_self" class="nav-link {'active' if is_scanner else ''}">Code Scanner</a>
         <a href="?page=pr" target="_self" class="nav-link {'active' if is_pr else ''}">PR Analyzer</a>
+        <a href="?page=alerts" target="_self" class="nav-link {'active' if is_alerts else ''}">Alerts</a>
         <a href="?page=about" target="_self" class="nav-link {'active' if is_about else ''}">About</a>
     </div>
     {right_header_elem}
@@ -2321,7 +2413,7 @@ if is_home:
             </div>
             <div class="foot-cols">
                 <div class="foot-group"><span class="foot-title">Product</span>
-                    <a href="?page=home" target="_self">Home</a><a href="?page=explore" target="_self">Explore Decisions</a><a href="?page=about" target="_self">About</a></div>
+                    <a href="?page=home" target="_self">Home</a><a href="?page=explore" target="_self">Explore Decisions</a><a href="?page=scanner" target="_self">Code Scanner</a><a href="?page=pr" target="_self">PR Analyzer</a><a href="?page=alerts" target="_self">Alerts</a><a href="?page=about" target="_self">About</a></div>
                 <div class="foot-group"><span class="foot-title">Resources</span>
                     <a href="{_repo_url}" target="_blank" rel="noopener">GitHub repository</a><a href="https://github.com/pallets/flask" target="_blank" rel="noopener">Flask repository</a></div>
             </div>
@@ -2617,6 +2709,9 @@ with app.test_client() as client:
             if not scan_res.success:
                 st.error(f"Scanner Notice: {scan_res.error}")
             elif scan_res.total_findings == 0:
+                st.session_state["scan_findings"] = []
+                st.session_state["scan_target_version"] = target_v.strip() if target_v else None
+                st.session_state["scan_file_name"] = file_label
                 st.markdown(clean_html("""
                 <div style="text-align: center; margin: 1.5rem auto 2.5rem; padding: 2.2rem 1.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;">
                     <div style="display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(34, 197, 94, 0.1); border:1px solid rgba(34, 197, 94, 0.25); border-radius:12px; color:#22C55E; margin-bottom:0.75rem;">
@@ -2632,6 +2727,9 @@ with app.test_client() as client:
                 </div>
                 """), unsafe_allow_html=True)
             else:
+                st.session_state["scan_findings"] = scan_res.findings
+                st.session_state["scan_target_version"] = target_v.strip() if target_v else None
+                st.session_state["scan_file_name"] = file_label
                 # Render summary header
                 st.markdown(clean_html(f"""
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 0.8rem;">
@@ -2641,6 +2739,9 @@ with app.test_client() as client:
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.6rem;">
                         <span class="source-badge source-fallback"><span>Total Findings: {scan_res.total_findings}</span></span>
+                        <a href="?page=alerts" target="_self" class="decision-badge">
+                            <span>View Prioritized Alerts →</span>
+                        </a>
                     </div>
                 </div>
                 """), unsafe_allow_html=True)
@@ -2780,6 +2881,11 @@ elif is_pr:
             if not pr_res.success:
                 st.error(f"Analysis Notice: {pr_res.error}")
             else:
+                # Save findings to session state for the Alerts system
+                st.session_state["pr_findings"] = pr_res.findings
+                st.session_state["pr_target_version"] = pr_target_v.strip() if pr_target_v else None
+                st.session_state["pr_url"] = pr_res.pr_url
+
                 # 1. PR Overview Card
                 state_badge = '<span class="pill-status pill-status-active">Open</span>' if pr_res.pr_state == "open" else '<span class="pill-status pill-status-removed">Closed</span>'
                 st.markdown(clean_html(f"""
@@ -2805,6 +2911,9 @@ elif is_pr:
                                 {github_svg}
                                 <span>Open PR</span>
                                 {ext_arrow_svg}
+                            </a>
+                            <a href="?page=alerts" target="_self" class="decision-badge">
+                                <span>View Prioritized Alerts →</span>
                             </a>
                         </div>
                     </div>
@@ -2974,7 +3083,328 @@ elif is_pr:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PAGE 5: TECHNICAL APPROACH / ABOUT
+# PAGE 5: ACTIONABLE FINDINGS & ALERT SYSTEM (STEP 6)
+# ══════════════════════════════════════════════════════════════════════════════
+
+elif is_alerts:
+
+    st.markdown('<div style="height: 1.8rem;"></div>', unsafe_allow_html=True)
+
+    # Header Row
+    st.markdown(clean_html("""
+    <div class="section-header-row">
+        <div class="section-title-wrap">
+            <span class="sec-pill">PRIORITIZED ALERTS</span>
+            <h2 class="sec-title" style="margin: 0.35rem 0 0.2rem;">Actionable Findings & Alert System</h2>
+            <p class="sec-desc">Translates AST scanner and PR analyzer findings into transparent, rule-based alerts to prioritize what breaks first. Alerts are categorized strictly by verified lifecycle milestones (Critical, High, Medium, Informational).</p>
+        </div>
+        <div class="badge-count-pill">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>Rule-Based Prioritization</span>
+        </div>
+    </div>
+    """), unsafe_allow_html=True)
+
+    # 1. Source Data Gathering
+    scan_findings = st.session_state.get("scan_findings", [])
+    scan_target_v = st.session_state.get("scan_target_version")
+    pr_findings = st.session_state.get("pr_findings", [])
+    pr_target_v = st.session_state.get("pr_target_version")
+
+    # Target version override input if user wants to re-evaluate alerts with a specific target version
+    col_src, col_ver = st.columns([2, 1], gap="medium")
+    with col_src:
+        source_filter_choice = st.radio(
+            "Select Findings Source",
+            options=["All Active Sources (Merged)", "Local Code Scan", "GitHub PR Diff"],
+            horizontal=True,
+            help="Choose which detection source to inspect alerts for."
+        )
+    with col_ver:
+        alert_target_override = st.text_input(
+            "Evaluation Target Version",
+            value=scan_target_v or pr_target_v or "",
+            placeholder="e.g. 2.2.0, 2.3.0, 3.0.0",
+            help="Override or set the Flask target version to re-evaluate severity (Critical if target >= removal)."
+        )
+
+    eval_target_v = alert_target_override.strip() if alert_target_override else None
+
+    # Sample data generator for quick evaluation/demo if no scan has been executed yet
+    if not scan_findings and not pr_findings:
+        st.markdown(clean_html("""
+        <div style="margin: 1.2rem 0; padding: 1.2rem 1.4rem; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px;">
+            <div style="font-weight: 600; color: #93C5FD; margin-bottom: 0.35rem;">No active scan or PR analysis findings in the current session.</div>
+            <div style="font-size: 0.88rem; color: #CBD5E1; line-height: 1.55;">
+                Run a scan on the <strong>Code Scanner</strong> page or inspect a pull request on the <strong>PR Analyzer</strong> page. Alternatively, click below to load a verified sample dataset to test alert prioritization.
+            </div>
+        </div>
+        """), unsafe_allow_html=True)
+        if st.button("Load Verified Sample Findings (Demo)", type="secondary"):
+            sample_code = '''
+# Sample Application
+@app.before_first_request
+def setup():
+    pass
+
+if not app.got_first_request:
+    initialize()
+
+def test_api(client):
+    return client.get('/status', as_tuple=True)
+'''
+            demo_scan = code_scanner.scan_code(sample_code, file_name="demo_app.py", target_version="2.3.0")
+            st.session_state["scan_findings"] = demo_scan.findings
+            st.session_state["scan_target_version"] = "2.3.0"
+            st.session_state["scan_file_name"] = "demo_app.py"
+            st.rerun()
+
+    # Build the report based on chosen source
+    scan_report = alert_engine.alerts_from_scan_findings(scan_findings, target_version=eval_target_v)
+    pr_report = alert_engine.alerts_from_pr_findings(pr_findings, target_version=eval_target_v)
+
+    if source_filter_choice == "Local Code Scan":
+        active_report = scan_report
+    elif source_filter_choice == "GitHub PR Diff":
+        active_report = pr_report
+    else:
+        active_report = alert_engine.merge_reports(scan_report, pr_report)
+
+    # Initialize and apply session-based alert status overrides
+    if "alert_statuses" not in st.session_state:
+        st.session_state["alert_statuses"] = {}
+
+    active_report = alert_engine.apply_status_overrides(active_report, st.session_state["alert_statuses"])
+
+    # Notice about session status storage
+    st.caption("ℹ️ *Alert statuses ('New', 'Needs Review', 'Resolved') and severity assessments are session-based (temporary state).*")
+
+    # Metric Cards Grid
+    st.markdown(clean_html(f"""
+    <div class="stats-grid" style="margin: 1rem 0 1.5rem 0;">
+        <div class="stat-item">
+            <div class="stat-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-meta-label">Total Alerts</div>
+                <div class="stat-meta-val">{active_report.total}</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #F87171;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-meta-label">Critical (Removed)</div>
+                <div class="stat-meta-val" style="color: #F87171;">{active_report.critical_count}</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon" style="background: rgba(249, 115, 22, 0.15); color: #FB923C;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-meta-label">High (Removal Slated)</div>
+                <div class="stat-meta-val" style="color: #FB923C;">{active_report.high_count}</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #FBBF24;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-meta-label">Medium (Deprecated)</div>
+                <div class="stat-meta-val" style="color: #FBBF24;">{active_report.medium_count}</div>
+            </div>
+        </div>
+    </div>
+    """), unsafe_allow_html=True)
+
+    # Empty State Check
+    if active_report.total == 0:
+        st.markdown(clean_html("""
+        <div style="text-align: center; margin: 2rem auto; padding: 2.5rem 1.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;">
+            <div style="display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; background:rgba(34, 197, 94, 0.1); border:1px solid rgba(34, 197, 94, 0.25); border-radius:12px; color:#22C55E; margin-bottom:0.75rem;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+            <div style="font-size: 1.15rem; font-weight: 600; color: var(--text-primary);">No active alerts detected.</div>
+            <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.35rem; line-height: 1.6;">
+                No known supported deprecated or removed Flask API patterns were detected in the selected findings source.
+            </div>
+        </div>
+        """), unsafe_allow_html=True)
+    else:
+        # Filters Bar
+        st.markdown("#### Filter Alerts")
+        f_col1, f_col2, f_col3, f_col4 = st.columns(4)
+
+        with f_col1:
+            sel_severity = st.selectbox(
+                "Severity",
+                options=["All", "Critical", "High", "Medium", "Informational"],
+                index=0
+            )
+        with f_col2:
+            sel_status = st.selectbox(
+                "Status",
+                options=["All", "New", "Needs Review", "Resolved"],
+                index=0
+            )
+        with f_col3:
+            all_symbols = sorted(list(set(a.symbol for a in active_report.alerts)))
+            sel_symbol = st.selectbox(
+                "API Symbol",
+                options=["All"] + all_symbols,
+                index=0
+            )
+        with f_col4:
+            all_sources = sorted(list(set(a.source for a in active_report.alerts)))
+            sel_source = st.selectbox(
+                "Detection Source",
+                options=["All"] + all_sources,
+                index=0
+            )
+
+        # Apply user filters
+        filtered_alerts = active_report.alerts
+        if sel_severity != "All":
+            filtered_alerts = [a for a in filtered_alerts if a.severity == sel_severity]
+        if sel_status != "All":
+            filtered_alerts = [a for a in filtered_alerts if a.status == sel_status]
+        if sel_symbol != "All":
+            filtered_alerts = [a for a in filtered_alerts if a.symbol == sel_symbol]
+        if sel_source != "All":
+            filtered_alerts = [a for a in filtered_alerts if a.source == sel_source]
+
+        st.markdown(f"Showing **{len(filtered_alerts)}** of **{active_report.total}** alerts")
+
+        if not filtered_alerts:
+            st.info("No alerts match the chosen filter criteria.")
+        else:
+            # Group filtered alerts by severity in priority order
+            grouped_alerts = {}
+            for sev in [alert_engine.SEVERITY_CRITICAL, alert_engine.SEVERITY_HIGH, alert_engine.SEVERITY_MEDIUM, alert_engine.SEVERITY_INFO]:
+                matching = [a for a in filtered_alerts if a.severity == sev]
+                if matching:
+                    grouped_alerts[sev] = matching
+
+            severity_descriptions = {
+                alert_engine.SEVERITY_CRITICAL: "Confirmed removed in target Flask version — code will fail immediately on import or invocation.",
+                alert_engine.SEVERITY_HIGH: "Confirmed removal milestone known, but target version is unspecified or unestablished.",
+                alert_engine.SEVERITY_MEDIUM: "Deprecated in target Flask version; removal scheduled in a subsequent release.",
+                alert_engine.SEVERITY_INFO: "API lifecycle milestone information available, but no direct breaking conclusion is established.",
+            }
+
+            for sev_title, sev_alerts in grouped_alerts.items():
+                sev_badge_cls = severity_badge_class(sev_title)
+                st.markdown(clean_html(f"""
+                <div style="display: flex; align-items: baseline; gap: 0.8rem; margin: 1.5rem 0 0.8rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+                    <span class="{sev_badge_cls}" style="font-size: 0.82rem;">{sev_title} ({len(sev_alerts)})</span>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">{severity_descriptions.get(sev_title, '')}</span>
+                </div>
+                """), unsafe_allow_html=True)
+
+                for alert in sev_alerts:
+                    line_str = f"Line {alert.line_number}" if alert.line_number is not None else "Line unavailable"
+                    source_badge = '<span class="source-badge source-neo4j" style="font-size:0.72rem;">' + html.escape(alert.source) + '</span>'
+                    status_badge = f'<span class="{alert_status_badge_class(alert.status)}" style="font-size:0.72rem;">{alert.status}</span>'
+                    confidence_badge = f'<span class="pill-status pill-status-active" style="font-size:0.7rem;">{alert.confidence}</span>' if "high" in alert.confidence.lower() else f'<span class="pill-status pill-status-deprecated" style="font-size:0.7rem;">{alert.confidence}</span>'
+
+                    ev_html = ""
+                    if alert.evidence_url:
+                        ev_html = f'''<a href="{alert.evidence_url}" target="_blank" class="evidence-pill-btn">{github_svg}<span>Verified Evidence</span>{ext_arrow_svg}</a>'''
+                    else:
+                        ev_html = '<span style="font-size:0.8rem; color:var(--text-muted); font-style:italic;">Evidence reference unavailable</span>'
+
+                    rec_html = ""
+                    if alert.recommended_action:
+                        rec_html = f'''
+                        <div class="alert-rec-box">
+                            <strong>Recommended Action:</strong> {html.escape(alert.recommended_action)}
+                        </div>
+                        '''
+                    else:
+                        rec_html = '<div style="font-size:0.82rem; color:var(--text-muted); margin: 0.5rem 0;">No verified recommendation recorded for this symbol.</div>'
+
+                    # Alert Box
+                    st.markdown(clean_html(f"""
+                    <div class="alert-card">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.6rem; margin-bottom:0.6rem;">
+                            <div>
+                                <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.3rem;">
+                                    <span class="{severity_badge_class(alert.severity)}">{alert.severity}</span>
+                                    <span style="font-weight:700; font-size:1.05rem; color:var(--text-primary);">{html.escape(alert.symbol)}</span>
+                                    {status_badge}
+                                    <code style="font-size:0.75rem; color:var(--text-muted);">{alert.alert_id}</code>
+                                </div>
+                                <div style="font-size:0.85rem; color:var(--text-muted);">
+                                    <code>{html.escape(alert.file_path)}</code> — <strong>{line_str}</strong> | {source_badge} | {confidence_badge}
+                                </div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:0.5rem;">
+                                <a href="?page=explore&decision={alert.symbol}" target="_self" class="decision-badge">
+                                    <span>Explorer</span>
+                                    {ext_arrow_svg}
+                                </a>
+                            </div>
+                        </div>
+
+                        <div style="font-size:0.88rem; color:#E2E8F0; margin:0.5rem 0 0.7rem; line-height:1.55;">
+                            {html.escape(alert.description)}
+                        </div>
+
+                        {rec_html}
+
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem; margin-top:0.8rem; padding-top:0.6rem; border-top:1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size:0.82rem; color:var(--text-muted);">
+                                Deprecated: <code>{alert.dep_version or 'N/A'}</code> | Removed: <code>{alert.rem_version or 'N/A'}</code>
+                            </div>
+                            <div>
+                                {ev_html}
+                            </div>
+                        </div>
+                    </div>
+                    """), unsafe_allow_html=True)
+
+                    # Workflow Status Management Expander
+                    with st.expander(f"Manage Alert Workflow: {alert.alert_id} ({alert.status})", expanded=False):
+                        w_col1, w_col2 = st.columns([1.5, 2])
+                        with w_col1:
+                            new_status = st.selectbox(
+                                "Update Workflow Status",
+                                options=["New", "Needs Review", "Resolved"],
+                                index=["New", "Needs Review", "Resolved"].index(alert.status) if alert.status in ["New", "Needs Review", "Resolved"] else 0,
+                                key=f"status_sel_{alert.alert_id}"
+                            )
+                            if new_status != alert.status:
+                                st.session_state["alert_statuses"][alert.alert_id] = new_status
+                                st.rerun()
+                        with w_col2:
+                            st.caption(f"**Alert ID:** `{alert.alert_id}`")
+                            st.caption(f"**API Symbol:** `{alert.symbol}`")
+                            st.caption(f"**Detection Source:** {alert.source}")
+                            st.caption("Status updates are preserved during your active browser session.")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE 6: TECHNICAL APPROACH / ABOUT
 # ══════════════════════════════════════════════════════════════════════════════
 
 elif is_about:
