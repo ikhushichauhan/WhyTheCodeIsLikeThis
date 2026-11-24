@@ -267,14 +267,60 @@ def _build_description(
 
 # ── Public conversion functions ───────────────────────────────────────────────
 
+def normalize_scan_finding(f: Any) -> Dict[str, Any]:
+    """Normalizes a scanner finding from a dataclass, object, or dict into a standard dict.
+
+    Ensures robust ingestion regardless of whether findings are preserved as
+    code_scanner.ScanFinding dataclasses, plain dictionaries, or serialized state.
+    """
+    if isinstance(f, dict):
+        symbol = str(f.get("symbol", "") or "")
+        file_name = str(f.get("file_name") or f.get("file_path") or "<input>")
+        line = f.get("line") if f.get("line") is not None else f.get("line_number")
+        dep_v = f.get("dep_version")
+        rem_v = f.get("rem_version")
+        status = str(f.get("status", "") or "")
+        evidence_url = f.get("evidence_url")
+        confidence = str(f.get("confidence", "high") or "high")
+        detection_type = str(f.get("detection_type", "") or "")
+        explanation = str(f.get("explanation", "") or "")
+        rec_action = f.get("recommended_action") or VERIFIED_ACTIONS.get(symbol)
+    else:
+        symbol = str(getattr(f, "symbol", "") or "")
+        file_name = str(getattr(f, "file_name", None) or getattr(f, "file_path", None) or "<input>")
+        line = getattr(f, "line", None) if getattr(f, "line", None) is not None else getattr(f, "line_number", None)
+        dep_v = getattr(f, "dep_version", None)
+        rem_v = getattr(f, "rem_version", None)
+        status = str(getattr(f, "status", "") or "")
+        evidence_url = getattr(f, "evidence_url", None)
+        confidence = str(getattr(f, "confidence", "high") or "high")
+        detection_type = str(getattr(f, "detection_type", "") or "")
+        explanation = str(getattr(f, "explanation", "") or "")
+        rec_action = getattr(f, "recommended_action", None) or VERIFIED_ACTIONS.get(symbol)
+
+    return {
+        "symbol": symbol,
+        "file_name": file_name,
+        "line": line,
+        "dep_version": dep_v,
+        "rem_version": rem_v,
+        "status": status,
+        "evidence_url": evidence_url,
+        "confidence": confidence,
+        "detection_type": detection_type,
+        "explanation": explanation,
+        "recommended_action": rec_action,
+    }
+
+
 def alerts_from_scan_findings(
-    findings: list,
+    findings: Any,
     target_version: Optional[str] = None,
 ) -> AlertReport:
-    """Convert a list of code_scanner.ScanFinding objects into an AlertReport.
+    """Convert code_scanner.ScanFinding objects (or dictionaries) into an AlertReport.
 
     Args:
-        findings: List of ScanFinding dataclass instances.
+        findings: List of ScanFinding dataclass instances or finding dicts.
         target_version: Optional Flask version string.
 
     Returns:
@@ -283,35 +329,50 @@ def alerts_from_scan_findings(
     seen_ids: Set[str] = set()
     alerts: List[Alert] = []
 
-    for f in findings:
+    if findings is None:
+        raw_list = []
+    elif isinstance(findings, (list, tuple, set)):
+        raw_list = list(findings)
+    else:
+        raw_list = [findings]
+
+    for raw_f in raw_list:
+        norm = normalize_scan_finding(raw_f)
+        symbol = norm["symbol"]
+        file_name = norm["file_name"]
+        line = norm["line"]
+        dep_v = norm["dep_version"]
+        rem_v = norm["rem_version"]
+        status = norm["status"]
+
         severity = compute_severity(
-            dep_version=f.dep_version,
-            rem_version=f.rem_version,
+            dep_version=dep_v,
+            rem_version=rem_v,
             target_version=target_version,
-            status_text=f.status,
+            status_text=status,
         )
-        alert_id = _make_alert_id(f.symbol, f.file_name, f.line, SOURCE_LOCAL_SCAN)
+        alert_id = _make_alert_id(symbol, file_name, line, SOURCE_LOCAL_SCAN)
         if alert_id in seen_ids:
             continue
         seen_ids.add(alert_id)
 
         alerts.append(Alert(
             alert_id=alert_id,
-            symbol=f.symbol,
+            symbol=symbol,
             severity=severity,
             status="New",
-            file_path=f.file_name,
-            line_number=f.line,
+            file_path=file_name,
+            line_number=line,
             source=SOURCE_LOCAL_SCAN,
             description=_build_description(
-                f.symbol, severity, f.dep_version, f.rem_version, target_version
+                symbol, severity, dep_v, rem_v, target_version
             ),
-            dep_version=f.dep_version,
-            rem_version=f.rem_version,
-            evidence_url=f.evidence_url,
-            recommended_action=VERIFIED_ACTIONS.get(f.symbol),
-            confidence=f.confidence,
-            detection_type=f.detection_type,
+            dep_version=dep_v,
+            rem_version=rem_v,
+            evidence_url=norm["evidence_url"],
+            recommended_action=norm["recommended_action"],
+            confidence=norm["confidence"],
+            detection_type=norm["detection_type"],
         ))
 
     # Sort: critical first, then by file+line

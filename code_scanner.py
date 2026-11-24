@@ -64,6 +64,20 @@ class ScanResult:
         return len(self.findings)
 
 
+_LAST_SCAN_RESULT: Optional[ScanResult] = None
+
+
+def get_last_scan_result() -> Optional[ScanResult]:
+    """Returns the most recent ScanResult, or None if no scan has been performed."""
+    return _LAST_SCAN_RESULT
+
+
+def set_last_scan_result(result: Optional[ScanResult]) -> None:
+    """Sets or clears the most recent ScanResult."""
+    global _LAST_SCAN_RESULT
+    _LAST_SCAN_RESULT = result
+
+
 def _get_decision_metadata(symbol: str) -> Dict[str, Any]:
     """Retrieves verified lifecycle metadata from decisions.json for a symbol."""
     try:
@@ -334,7 +348,7 @@ def scan_code(
     # Sort findings deterministically by line and column
     visitor.findings.sort(key=lambda f: (f.line, f.col))
 
-    return ScanResult(
+    res = ScanResult(
         success=True,
         findings=visitor.findings,
         error=None,
@@ -342,3 +356,5 @@ def scan_code(
         file_name=file_name,
         lines_scanned=lines_count,
     )
+    set_last_scan_result(res)
+    return res

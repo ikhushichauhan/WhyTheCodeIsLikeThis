@@ -367,6 +367,112 @@ if not app.got_first_request:
         self.assertEqual(data["medium"], 1)
         self.assertEqual(len(data["alerts"]), 2)
 
+    def test_13_normalize_scan_finding_from_dict_and_object(self):
+        """13. normalize_scan_finding correctly handles both dataclasses and dicts."""
+        finding_obj = ScanFinding(
+            symbol="app.before_first_request",
+            file_name="app.py",
+            line=10,
+            col=0,
+            detection_type="decorator",
+            dep_version="2.2.0",
+            rem_version="2.3.0",
+            explanation="Configuration should be done before running...",
+            evidence_url="https://github.com/pallets/flask/issues/4605",
+            status="Removed in Flask 2.3.0",
+            confidence="high",
+        )
+        norm_obj = alert_engine.normalize_scan_finding(finding_obj)
+        self.assertEqual(norm_obj["symbol"], "app.before_first_request")
+        self.assertEqual(norm_obj["file_name"], "app.py")
+        self.assertEqual(norm_obj["line"], 10)
+        self.assertEqual(norm_obj["rem_version"], "2.3.0")
+
+        # Dict representation (e.g. from session state / serialization)
+        finding_dict = {
+            "symbol": "app.before_first_request",
+            "file_name": "app.py",
+            "line": 10,
+            "dep_version": "2.2.0",
+            "rem_version": "2.3.0",
+            "status": "Removed in Flask 2.3.0",
+            "evidence_url": "https://github.com/pallets/flask/issues/4605",
+            "confidence": "high",
+            "detection_type": "decorator",
+        }
+        norm_dict = alert_engine.normalize_scan_finding(finding_dict)
+        self.assertEqual(norm_dict["symbol"], "app.before_first_request")
+        self.assertEqual(norm_dict["file_name"], "app.py")
+        self.assertEqual(norm_dict["line"], 10)
+        self.assertEqual(norm_dict["rem_version"], "2.3.0")
+
+    def test_14_alerts_from_scan_findings_with_dicts(self):
+        """14. alerts_from_scan_findings safely consumes plain dict finding records."""
+        finding_dict = {
+            "symbol": "app.before_first_request",
+            "file_name": "server.py",
+            "line": 12,
+            "dep_version": "2.2.0",
+            "rem_version": "2.3.0",
+            "status": "Removed in Flask 2.3.0",
+            "evidence_url": "https://github.com/pallets/flask/issues/4605",
+            "confidence": "high",
+            "detection_type": "decorator",
+        }
+        report = alert_engine.alerts_from_scan_findings([finding_dict], target_version="2.3.0")
+        self.assertEqual(report.total, 1)
+        self.assertEqual(report.alerts[0].symbol, "app.before_first_request")
+        self.assertEqual(report.alerts[0].severity, alert_engine.SEVERITY_CRITICAL)
+        self.assertEqual(report.alerts[0].file_path, "server.py")
+        self.assertEqual(report.alerts[0].line_number, 12)
+
+    def test_15_scanner_to_alerts_integration_flow_before_first_request(self):
+        """15. Complete flow: Scan deprecated code -> pass to alert_engine -> verify alert."""
+        deprecated_code = """from flask import Flask
+app = Flask(__name__)
+
+@app.before_first_request
+def setup_app():
+    pass
+"""
+        scan_res = scan_code(deprecated_code, file_name="app.py", target_version="2.3.0")
+        self.assertTrue(scan_res.success)
+        self.assertEqual(scan_res.total_findings, 1)
+        self.assertEqual(scan_res.findings[0].symbol, "app.before_first_request")
+
+        # Simulate storing in session state and retrieving on Alerts page
+        session_state_findings = scan_res.findings
+        report = alert_engine.alerts_from_scan_findings(session_state_findings, target_version="2.3.0")
+
+        self.assertEqual(report.total, 1)
+        alert = report.alerts[0]
+        self.assertEqual(alert.symbol, "app.before_first_request")
+        self.assertEqual(alert.severity, alert_engine.SEVERITY_CRITICAL)
+        self.assertEqual(alert.file_path, "app.py")
+        self.assertEqual(alert.line_number, 4)
+        self.assertIn("application factory", alert.recommended_action)
+        self.assertEqual(alert.status, "New")
+
+    def test_16_scanner_to_alerts_integration_flow_no_target_version(self):
+        """16. Complete flow without target version defaults to High severity."""
+        code = """from flask import Flask
+app = Flask(__name__)
+
+@app.before_first_request
+def setup():
+    pass
+"""
+        scan_res = scan_code(code, file_name="main.py", target_version=None)
+        self.assertTrue(scan_res.success)
+        self.assertEqual(scan_res.total_findings, 1)
+
+        report = alert_engine.alerts_from_scan_findings(scan_res.findings, target_version=None)
+        self.assertEqual(report.total, 1)
+        alert = report.alerts[0]
+        self.assertEqual(alert.symbol, "app.before_first_request")
+        self.assertEqual(alert.severity, alert_engine.SEVERITY_HIGH)
+        self.assertIn("No target version was provided", alert.description)
+
 
 if __name__ == "__main__":
     unittest.main()
