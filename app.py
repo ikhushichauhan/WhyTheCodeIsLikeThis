@@ -6,7 +6,7 @@ from PIL import Image
 import streamlit as st
 from requests.auth import HTTPBasicAuth
 from dotenv import load_dotenv
-
+from typing import import Optional
 import code_scanner
 import pr_analyzer
 import alert_engine
